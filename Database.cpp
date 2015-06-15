@@ -32,5 +32,47 @@ void Database::Save(){
 }
 
 void Database::Load(){
+	fstream fin("staff.dat");
+	if(fin.fail())return;
+	string temp;
+	getline(fin,temp);	//Read Form Header
+	while(!fin.eof()){
+		getline(fin,temp);
+		vector<string> data;
+		StrSplit(temp,'#',data);
 
+		int id = STOI(data[0]);
+		string name = data[1];
+		STAFF_KIND kind = STOI(data[2]);
+		int age = STOI(data[3]);
+		STAFF_STATE state = STOI(data[4]);
+		int manager_id = STOI(data[5]);
+		int sales = STOI(data[6]);
+		int events = STOI(data[7]);
+
+		Staff *p;
+		Salesman *psalesman;
+		Manager *pmanager;
+		SalesManager *psalesManager;
+		switch (kind){
+			case SALESMAN:
+				psalesman = new Salesman(id,name,age,state);
+				psalesman -> SetManagerID(manager_id);
+				psalesman -> SetSales(sales);
+				p = dynamic_cast<Staff*>(psalesman);
+				break;
+			case MANAGER:
+				pmanager = new pmanager(id,name,age,state);
+				pmanager -> SetEvents(events);
+				p = dynamic_cast<Staff*>(pmanager);
+				break;
+			case SALESMANAGER:
+				psalesManager = new SalesManger(id,name,age,state);
+				p = dynamic_cast<Staff*>(psalesManager);
+				break;
+			default:
+				throw "读取数据出错！";
+		}
+		
+	}
 }

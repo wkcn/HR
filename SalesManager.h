@@ -6,9 +6,9 @@
 
 class SalesManager : public Salesman, public Manager{
 	private:
-		static map<int,Salesman*> psalesMen;	//由销售人员编号到指向销售人员的指针的映射
+		//static map<int,Salesman*> psalesMen;	//由销售人员编号到指向销售人员的指针的映射
 	protected:
-		set<int> salesMen;	//该销售经理管理的销售人员编号
+		//set<int> salesMen;	//该销售经理管理的销售人员编号
 	public:
 		SalesManager(int id,const string &name,int age,STAFF_STATE state);
 
