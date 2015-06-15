@@ -8,6 +8,10 @@ Achievement Manager::GetAchievement(){
 	return Achievement(0,events);
 }
 
+STAFF_KIND Manager::GetKind(){
+	return MANAGER;
+}
+
 void Manager::SetEvents(int events){
 	this -> events = events;
 }

@@ -9,13 +9,15 @@ class Salesman : public Staff{
 		int sales;		//销售额
 	public:
 		Salesman(int id,const string &name,int age,STAFF_STATE state);
+
 		Achievement GetAchievement();
+		STAFF_KIND GetKind();
 		
 		void SetManagerID(int id);
 		void SetSales(int sales);
 		
 		int GetMangerID();
 		int GetSales();
-}
+}；
 
 #endif

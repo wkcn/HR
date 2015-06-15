@@ -8,6 +8,10 @@ Achievement Salesman::GetAchievement(){
 	return Achievement(sales,0);
 }
 
+STAFF_KIND Salesman::GetKind(){
+	return SALESMAN;
+}
+
 void Salesman::SetManagerID(int id){
 	manager_id = id;
 }

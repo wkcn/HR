@@ -20,6 +20,10 @@ void Staff::ChangeID(STAFF_STATE state){
 	this -> state = state;
 }
 
+STAFF_KIND Staff::GetKind(){
+	return STAFF;
+}
+
 int Staff::GetID(){
 	return id;
 }
