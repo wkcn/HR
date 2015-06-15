@@ -16,8 +16,7 @@ class Staff{
 		STAFF_STATE state;
 	public:
 		Staff(int id,const string &name,int age,STAFF_STATE state);
-		virtual void getAchievement() = 0;	//输出员工业绩
-		void PrintBasicInfo();	//打印员工的基本信息
+		virtual Achievement GetAchievement() = 0;	//返回员工业绩
 		
 		void ChangeID(int id);
 		void ChangeName(const string &name);

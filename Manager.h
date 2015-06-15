@@ -7,7 +7,11 @@ class Manager : public Staff{
 	protected:
 		int events;	//这里的翻译不太好
 	public:
-		void getAchievement();
+		Manager(int id,const string &name,int age,STAFF_STATE state);
+		Achievement GetAchievement();
+		
+		void SetEvents(int events);
+		int GetEvents();
 }
 
 #endif
