@@ -1,10 +1,10 @@
 #ifndef SALES_MANAGER_H
 #define SALES_MANAGER_H
 
-#include "Salesman.h"
+#include "SalesMan.h"
 #include "Manager.h"
 
-class SalesManager : public Salesman, public Manager{
+class SalesManager : public SalesMan, public Manager{
 	private:
 		//static map<int,Salesman*> psalesMen;	//由销售人员编号到指向销售人员的指针的映射
 	protected:
@@ -17,6 +17,6 @@ class SalesManager : public Salesman, public Manager{
 		
 		void AddSalesMan(int id);
 		void RemoveSalesMan(int id);
-}；
+};
 
 #endif

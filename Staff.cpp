@@ -16,7 +16,7 @@ void Staff::ChangeName(const string &name){
 void Staff::ChangeAge(int age){
 	this -> age = age;
 }
-void Staff::ChangeID(STAFF_STATE state){
+void Staff::ChangeState(STAFF_STATE state){
 	this -> state = state;
 }
 
@@ -36,3 +36,5 @@ int Staff::GetAge(){
 STAFF_STATE Staff::GetState(){
 	return state;
 }
+
+

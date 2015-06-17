@@ -13,11 +13,9 @@ void StrSplit(const string &str,char c,vector<string> &res){
 		}
 	}
 	if(!buf.empty())res.push_back(buf);
-
-	return res;
 }
 
-int STOI(const stirng &str){
+int STOI(const string &str){
 	int i;
 	sscanf(str.c_str(),"%d",&i);
 	return i;

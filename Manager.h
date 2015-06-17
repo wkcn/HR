@@ -14,6 +14,6 @@ class Manager : public Staff{
 		
 		void SetEvents(int events);
 		int GetEvents();
-}；
+};
 
 #endif
