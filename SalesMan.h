@@ -5,10 +5,11 @@
 
 class SalesMan : public Staff{
 	protected:
-		int manager_id;	//该销售员所属经理的编号,数值为-1时说明未分配对应经理
-		int sales;		//销售额
+		int _manager_id;	//该销售员所属经理的编号,数值为-1时说明未分配对应经理
+		int _sales;		//销售额
 	public:
 		SalesMan(int id,const string &name,int age,STAFF_STATE state);
+		~SalesMan();
 
 		Achievement GetAchievement();
 		STAFF_KIND GetKind();

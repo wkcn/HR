@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <map>
@@ -18,7 +19,7 @@ struct Achievement{
 	int sales;
 	int events;
 	Achievement():sales(0),events(0){}
-	Achievement(int sales,int events):sales(sales),events(events){};
+	Achievement(int _sales,int _events):sales(_sales),events(_events){};
 };
 
 enum STAFF_STATE{
@@ -29,7 +30,11 @@ enum STAFF_KIND{
 	STAFF,SALESMAN,MANAGER,SALESMANAGER
 };//员工类型
 
-void StrSplit(const string &str,char c,vector<string> &res);	//分割字符串
+void StrSplit(const string &str,vector<string> &res,char c = '\n');	//分割字符串
 int STOI(const string &str);	//字符串转数字
+
+char WordLowwer(char c);
+
+bool IgnoreLU(const string a,const string b);
 
 #endif

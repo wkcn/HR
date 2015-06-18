@@ -22,6 +22,20 @@
  );
 */
 
+//类型
+enum EXP_KIND{
+	EXP_OP,
+	EXP_VAR,
+	EXP_NUM,
+	EXP_STR
+};
+struct Exp{
+	//为了方便设计，这里暂时不考虑效率问题
+	string name;
+	EXP_KIND kind;
+	Exp *lv;
+	Exp *rv;
+};
 
 class Database{
 private:
@@ -29,6 +43,7 @@ private:
 public:
 	void Load();
 	void Save();
+	void GetData(vector<Staff*> v,string filter = "");//获取数据，DB类可以解析过滤器语言
 	~Database();
 }; 
 

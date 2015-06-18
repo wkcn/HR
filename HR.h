@@ -4,10 +4,13 @@
 #include "Database.h"
 
 class HR{
-	private:
-
 	public:
+		HR();
 		void Run();
+		void ShowHelp();
+	private:
+		vector<Staff*> viewList;
+		stringstream helpText;
 };
 
 #endif

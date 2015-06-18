@@ -5,9 +5,10 @@
 
 class Manager : public Staff{
 	protected:
-		int events;	//这里的翻译不太好
+		int _events;	//这里的翻译不太好
 	public:
 		Manager(int id,const string &name,int age,STAFF_STATE state);
+		~Manager();
 
 		Achievement GetAchievement();
 		STAFF_KIND GetKind();

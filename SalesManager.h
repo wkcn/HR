@@ -11,6 +11,7 @@ class SalesManager : public SalesMan, public Manager{
 		//set<int> salesMen;	//该销售经理管理的销售人员编号
 	public:
 		SalesManager(int id,const string &name,int age,STAFF_STATE state);
+		~SalesManager();
 
 		Achievement GetAchievement();
 		STAFF_KIND GetKind();

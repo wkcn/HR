@@ -53,7 +53,7 @@ void Database::Load(){
 	while(!fin.eof()){
 		getline(fin,temp);
 		vector<string> data;
-		StrSplit(temp,'#',data);
+		StrSplit(temp,data,'#');
 
 		int id = STOI(data[0]);
 		string name = data[1];
