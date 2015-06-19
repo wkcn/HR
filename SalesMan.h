@@ -3,7 +3,8 @@
 
 #include "Staff.h"
 
-class SalesMan : public Staff{
+//这里采用虚继承
+class SalesMan : virtual public Staff{
 	protected:
 		int _manager_id;	//该销售员所属经理的编号,数值为-1时说明未分配对应经理
 		int _sales;		//销售额

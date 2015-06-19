@@ -37,12 +37,26 @@ struct Exp{
 	Exp *rv;
 };
 
+class Comparer{
+	public:
+		Comparer(Exp *e):filter(e){};
+		bool operator()(Staff *a,Staff *b){
+			return a->GetID() < b->GetID();
+		}
+	private:
+		Exp *filter;
+};
 
 class Database{
 private:
 	map<int,Staff *> staffs;	//为了使用多态，这里采用存储指针的方式。id(int)为主键
 	map<string,string> alias;   //员工职称的别名(别名，原名)
 	stringstream helpText;
+	vector<string> priority; //优先级
+	vector<bool> prirev; //逆序
+	int cur_page;//当前页数 从1开始
+	int max_page;//最大页数
+	int page_items;//每页项目数
 private:
 	int ISP(const string &op);
 	int ICP(const string &op);
@@ -58,6 +72,7 @@ public:
 	~Database();
 	void Load();
 	void Save();
+	void Show();
 	void Execute(string com);//执行SQL命令
 	//void FetchAll(DBData &d);//获取结果
 	void GetData(vector<Staff*> v,const string filter = "");//获取数据，DB类可以解析过滤器语言

@@ -3,7 +3,8 @@
 
 #include "Staff.h"
 
-class Manager : public Staff{
+//这里采用虚继承
+class Manager : virtual public Staff{
 	protected:
 		int _events;	//这里的翻译不太好
 	public:

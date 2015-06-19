@@ -1,4 +1,5 @@
 #include "Database.h"
+#include "Form.h"
 
 Database::Database(){
 	ifstream fin("help.txt");
@@ -10,6 +11,10 @@ Database::Database(){
 	fin.close();
 
 	Load();//读取员工数据
+
+	cur_page = 1;
+	max_page = 0;
+	page_items = 10;
 }
 
 Database::~Database(){
@@ -95,7 +100,9 @@ void Database::Load(){
 				break;
 			case SALESMANAGER:
 				psalesManager = new SalesManager(id,name,age,state);
-				p = dynamic_cast<Staff*>(dynamic_cast<Manager*>(psalesManager));
+				//p = dynamic_cast<Staff*>(dynamic_cast<Manager*>(psalesManager));
+				//使用虚继承后，不会出现二义性了（有两基类）
+				p = dynamic_cast<Staff*>(psalesManager);
 				break;
 			default:
 				throw "读取数据出错！";
@@ -104,6 +111,26 @@ void Database::Load(){
 		staffs[id] = p;
 	} 
 	fin.close();
+}
+
+void Database::Show(){
+	vector<Staff *> vs;
+	for(auto &mp : staffs){
+		vs.push_back(mp.second);
+	}	
+	sort(vs.begin(),vs.end(),Comparer(0));
+
+	Form form;
+	//Header
+	form.write(0,0,"ID");
+	form.write(0,1,"Name");
+	form.write(0,2,"Age");
+	form.write(0,3,"State");
+	form.write(0,4,"Job");
+	form.write(0,5,"Manager ID");
+	form.write(0,6,"Sales");
+	form.write(0,7,"Events");
+	form.print();
 }
 
 int Database::ISP(const string &op){
@@ -311,7 +338,9 @@ void Database::Execute(string com){
 	com = com.substr(0,tail+1);
 	size_t poi = 0;
 	string ex = NextStr(com,poi,' ');
-	if (IgnoreLU(ex,"help")){
+	if (IgnoreLU(ex,"show")){
+		Show();
+	}else if (IgnoreLU(ex,"help")){
 		cout << helpText.str()<<endl;//输出帮助文档
 	}else if (IgnoreLU(ex,"insert") || ex == "i"){
 		string pro = NextStr(com,poi,' ');
@@ -331,20 +360,29 @@ void Database::Execute(string com){
 			cout << "不需要填写销售经理所管销售者,但销售经理的输入时间应先于所管销售者" << endl << endl;
 
 		}else{
-			//JumpSpace(com,poi);
-			cout << poi <<endl;
-			cout << com[poi] << "-" << com[com.size()-1] << endl;
+			JumpSpace(com,poi);
+			//cout << poi <<endl;
+			//cout << com[poi] << "-" << com[com.size()-1] << endl;
 			if (com[poi] == '(' && com[com.size()-1] == ')'){
 				pro = GetSourceName(pro);
 				vector<string> sp;
 				StrSplit(com.substr(poi+1,com.size()-poi-2),sp,',');
 				if (pro == "salesman"){
 					try{
+						if (sp.size() < 6)throw "输入参数过少";
 						//insert salesman (id,name,age,state,manager_id,sales)
 						int id = GetInt(sp[0]);
 						string name = GetStr(sp[1]);
+
 						int age = GetInt(sp[2]);
-						STAFF_STATE state = STAFF_STATE(GetInt(sp[3]));
+						if (age > 200){
+							throw "这个年龄没问题吗？";
+						}
+						int st = GetInt(sp[3]);
+						if (st < 0 || st > 2)throw "输入员工状态错误！";
+
+						STAFF_STATE state = STAFF_STATE(st);
+
 						int manager_id = GetInt(sp[4]);
 						int sales = GetInt(sp[5]);
 						while (staffs.count(id) > 0){
@@ -357,21 +395,88 @@ void Database::Execute(string com){
 						p -> SetSales(sales);
 						staffs[id] = dynamic_cast<Staff*>(p);
 						cout << "添加成功！" << endl;
-					}catch(char s){
+					}catch(const char *s){
 						cout << s <<endl;
 					}catch(...){
 						cout << "输入错误" << endl;
 					}
+				}else if (pro == "manager"){
+					try{
+						if (sp.size() < 5)throw "输入参数过少";
+						//insert manager (id,name,age,state,events)
+						int id = GetInt(sp[0]);
+						string name = GetStr(sp[1]);
+
+						int age = GetInt(sp[2]);
+						if (age > 200){
+							throw "这个年龄没问题吗？";
+						}
+						int st = GetInt(sp[3]);
+						if (st < 0 || st > 2)throw "输入员工状态错误！";
+
+						STAFF_STATE state = STAFF_STATE(st);
+
+						int events = GetInt(sp[4]);
+						while (staffs.count(id) > 0){
+							cout << "已存在编号为" << id << "的员工" << endl;
+							cout << "请重新输入编号:" << endl;
+							cin >> id;
+						}
+						Manager *p = new Manager(id,name,age,state);
+						p -> SetEvents(events);
+						staffs[id] = dynamic_cast<Staff*>(p);
+						cout << "添加成功！" << endl;
+					}catch(const char *s){
+						cout << s <<endl;
+					}catch(...){
+						cout << "输入错误" << endl;
+					}
+				}else if (pro == "salesmanager"){
+					try{
+						if (sp.size() < 5)throw "输入参数过少";
+						//insert salesmanager (id,name,age,state,events)
+						int id = GetInt(sp[0]);
+						string name = GetStr(sp[1]);
+
+						int age = GetInt(sp[2]);
+
+						if (age > 200){
+							throw "这个年龄没问题吗？";
+						}
+						int st = GetInt(sp[3]);
+						if (st < 0 || st > 2)throw "输入员工状态错误！";
+
+						STAFF_STATE state = STAFF_STATE(st);
+
+						int events = GetInt(sp[4]);
+						while (staffs.count(id) > 0){
+							cout << "已存在编号为" << id << "的员工" << endl;
+							cout << "请重新输入编号:" << endl;
+							cin >> id;
+						}
+						SalesManager *p = new SalesManager(id,name,age,state);
+						p -> SetEvents(events);
+						staffs[id] = dynamic_cast<Staff*>(p);
+						cout << "添加成功！" << endl;
+					}catch(const char *s){
+						cout << s <<endl;
+						cout << "请重新输入！" << endl;
+					}catch(...){
+						cout << "输入错误" << endl;
+						cout << "请重新输入！" << endl;
+					}
+				}else{
+					cout << "输入了无效职位名，职位名有salesman,manager,salesmanager 或他们的别名" << endl;
 				}
 			}else{
-				cout << "括号不存在或不匹配" << endl;
+				cout << "括号不存在或不匹配,或者没有输入职位名称" << endl;
 			}
 		}
 	}else if (IgnoreLU(ex,"alias")){
 		string source = NextStr(com,poi,' ');
 		string target = NextStr(com,poi,' ');
 		if (target.empty()){
-			cout << "别名使用方法：alias manager mg" << endl;
+			cout << "别名使用方法:\nalias manager mg" << endl;
 			cout << "即可用mg代替manager，删除该别名方法alias clear mg"<<endl;
 			cout << "注意：别名不会保存，下次运行本应用时会重置" << endl;
 			if (alias.size() > 0)cout << "当前别名：" << endl;

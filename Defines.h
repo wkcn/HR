@@ -8,6 +8,7 @@
 #include <vector>
 #include <stack>
 #include <map>
+#include <algorithm>
 
 #include <cstdio>
 
@@ -46,5 +47,29 @@ bool isBlank(char c);
 //摘录自 http://blog.csdn.net/cll131421/article/details/7959909
 string& replace_all(string& str,const string & old_value,const string & new_value);
 string& replace_all_distinct(string& str,const string & old_value,const string & new_value);
+
+template <typename T>
+void Qsort(T a[],int lo,int hi,bool (*lt)(T *a,T *b)){
+	if (lo >= hi)return;
+	int first = lo;
+	int last = hi;
+	T key = a[first];
+
+	while (first < last){
+		while (first < last && !lt(a[last],key))--last;
+		a[first] = a[last];/*将比第一个小的移到低端*/
+		while (first < last && lt(a[last],key))++first;
+		a[last] = a[first];/*将比第一个大的移到高端*/
+		
+		a[first] = key;
+		qsort(a,lo,first-1,lt);
+		qsort(a,first+1,hi,lt);
+	}
+}
+
+template <typename T>
+void Qsort(T *begin,T *end,bool(*lt)(T *a,T *b)){
+	qsort(begin,0,end-begin-1,lt);
+}
 
 #endif

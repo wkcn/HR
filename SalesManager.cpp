@@ -1,8 +1,9 @@
 #include "SalesManager.h"
 
-SalesManager::SalesManager(int id,const string &name,int age,STAFF_STATE state):SalesMan(id,name,age,state),Manager(id,name,age,state){
+SalesManager::SalesManager(int id,const string &name,int age,STAFF_STATE state):Staff(id,name,age,state),SalesMan(id,name,age,state),Manager(id,name,age,state){
 	
 }
+
 SalesManager::~SalesManager(){}
 
 Achievement SalesManager::GetAchievement(){
