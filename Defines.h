@@ -6,6 +6,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <stack>
 #include <map>
 
 #include <cstdio>
@@ -36,5 +37,7 @@ int STOI(const string &str);	//字符串转数字
 char WordLowwer(char c);
 
 bool IgnoreLU(const string a,const string b);
+
+string StrLowwer(const string &s);
 
 #endif

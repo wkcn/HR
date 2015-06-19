@@ -41,3 +41,15 @@ bool IgnoreLU(const string a,const string b){
 	}
 	return can;
 }
+
+string StrLowwer(const string &s){
+	string res;
+	for(const char &c:s){
+		if(c >= 'A' && c <= 'Z'){
+			res += c - 'A' + 'a';
+		}else{
+			res += c;
+		}
+	}
+	return res;
+}

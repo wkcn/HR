@@ -15,6 +15,7 @@ void HR::Run(){
 	cout << "若需帮助，请输入help" << endl;
 	string com;
 	vector<string> sp;//分割指令用
+	Database DB;
 	//简单起见，这里不用封装了
 	while (true){
 		getline(cin,com);//获取输入命令
@@ -22,6 +23,7 @@ void HR::Run(){
 		if (IgnoreLU(sp[0],"help")){
 			ShowHelp();
 		}
+		DB.Build(com);
 	}
 }
 

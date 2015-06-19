@@ -40,10 +40,13 @@ struct Exp{
 class Database{
 private:
 	map<int,Staff *> staffs;	//为了使用多态，这里采用存储指针的方式。id(int)为主键
+	int ISP(const string &op);
+	int ICP(const string &op);
 public:
 	void Load();
 	void Save();
-	void GetData(vector<Staff*> v,string filter = "");//获取数据，DB类可以解析过滤器语言
+	void GetData(vector<Staff*> v,const string filter = "");//获取数据，DB类可以解析过滤器语言
+	Exp *Build(const string filter);
 	~Database();
 }; 
 
