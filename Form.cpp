@@ -12,13 +12,12 @@ void Form::write(int r,int c,const string s){
 	}
 	size_t ow = widths[c];
 	datas[r][c] = s;
-	if (s.size() > ow){
-		widths[c] = s.size();
-	}else if (s.size() < ow){
+	size_t len = GetFontSize(s);
+	if (len > ow){
+		widths[c] = len;
+	}else if (len < ow){
 		UpdateWidth(c);
 	}
-	print();
-	cout << widths[c] <<endl;
 }
 
 void Form::write(int r,int c,int num){
@@ -67,11 +66,15 @@ void Form::printData(int start,int end){
 		for (size_t i = 0;i < widths.size();++i){
 			string con;
 			if (r < datas.size() && i < datas[r].size())con = datas[r][i];
-			cout << setw(widths[i]+1) << con << " |";
-		}
+			//右对齐，setw的对齐是数char数的，对中文字体大小衡量不准
+			//这里对等宽字体有效
+			size_t len = GetFontSize(con);
+			cout << setw(widths[i] + 2 - len - 1)<<" ";
+			cout << con << " |";
+ 		}
 		cout << endl;
-	}
-}
+ 	}
+ }
 
 void Form::printC(char c,int n){
 	for(int i = 0;i<n;++i)cout<<c;
@@ -81,10 +84,25 @@ void Form::UpdateWidth(int c){
 	size_t ma = 0;
 	for (size_t r = 0;r < datas.size(); ++r){
 		if (size_t(c) < datas[r].size() && datas[r][c].size() > ma){
-			ma = datas[r][c].size();
+			ma = GetFontSize(datas[r][c]);
 		}
 	}
 	widths[c] = ma;
+}
+
+size_t Form::GetFontSize(const string s){
+	size_t len = 0;
+	for(size_t i = 0;i<s.size();++i){
+		if(s[i]<0){
+			//中文
+			len += 2;
+			++i;
+			while((s[i]&0xC0) == 0x80)++i;
+		}else{
+			++len;
+		}
+	}
+	return len;
 }
 
 int main(){
@@ -94,8 +112,8 @@ int main(){
 	f.write(0,2,"ea");
 	f.write(0,3,"wa");
 	f.write(1,0,"wewaa");
-	f.write(1,1,"eg");
-	f.write(2,5,"wwwaa");
+	f.write(1,1,"鹅你好");
+	f.write(2,5,"wo");
 	f.write(2,4,"ea");
 	f.print();
 	return 0;

@@ -22,6 +22,7 @@ class Form{
 		void printC(char c,int n);//输出n个字符c
 		void printData(int start,int end);//列出表格数据,行[start,end]
 		void drawLine();//画边界线
+		size_t GetFontSize(const string s);
 	private:
 		vector<size_t> widths;//列宽
 		vector< vector<string> > datas;
