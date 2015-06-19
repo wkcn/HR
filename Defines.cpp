@@ -53,3 +53,28 @@ string StrLowwer(const string &s){
 	}
 	return res;
 }
+
+bool isBlank(char c){
+	return (c == ' ' || c == '\t' || c == '\n' || c == '\b' || c == '\r' || c == -1);
+}
+
+//以下两个字符串替换函数摘录自 http://blog.csdn.net/cll131421/article/details/7959909
+string&   replace_all(string&   str,const   string&   old_value,const   string&   new_value)   
+{   
+    while(true)   {   
+        string::size_type   pos(0);   
+        if(   (pos=str.find(old_value))!=string::npos   )   
+            str.replace(pos,old_value.length(),new_value);   
+        else   break;   
+    }   
+    return   str;   
+}   
+string&   replace_all_distinct(string&   str,const   string&   old_value,const   string&   new_value)   
+{   
+    for(string::size_type   pos(0);   pos!=string::npos;   pos+=new_value.length())   {   
+        if(   (pos=str.find(old_value,pos))!=string::npos   )   
+            str.replace(pos,old_value.length(),new_value);   
+        else   break;   
+    }   
+    return   str;   
+}   

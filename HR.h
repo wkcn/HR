@@ -7,10 +7,8 @@ class HR{
 	public:
 		HR();
 		void Run();
-		void ShowHelp();
 	private:
 		vector<Staff*> viewList;
-		stringstream helpText;
 };
 
 #endif

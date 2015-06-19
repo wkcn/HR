@@ -23,7 +23,7 @@
 */
 
 //类型
-enum EXP_KIND{
+enum EXP_KIND{ 
 	EXP_OP,
 	EXP_VAR,
 	EXP_NUM,
@@ -37,17 +37,30 @@ struct Exp{
 	Exp *rv;
 };
 
+
 class Database{
 private:
 	map<int,Staff *> staffs;	//为了使用多态，这里采用存储指针的方式。id(int)为主键
+	map<string,string> alias;   //员工职称的别名(别名，原名)
+	stringstream helpText;
+private:
 	int ISP(const string &op);
 	int ICP(const string &op);
+	Exp *Build(const string filter);
+	string NextStr(const string &s,size_t &poi,char c = ' ');
+	void JumpSpace(const string &s,size_t &poi);
+	void ShowPat();//显示输入格式
+	int GetInt(string s);
+	string GetStr(string s);
+	string GetSourceName(string s); //得到原名并转为小写
 public:
+	Database();
+	~Database();
 	void Load();
 	void Save();
+	void Execute(string com);//执行SQL命令
+	//void FetchAll(DBData &d);//获取结果
 	void GetData(vector<Staff*> v,const string filter = "");//获取数据，DB类可以解析过滤器语言
-	Exp *Build(const string filter);
-	~Database();
 }; 
 
 #endif

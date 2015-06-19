@@ -40,4 +40,11 @@ bool IgnoreLU(const string a,const string b);
 
 string StrLowwer(const string &s);
 
+bool isBlank(char c);
+
+//替换字符串函数
+//摘录自 http://blog.csdn.net/cll131421/article/details/7959909
+string& replace_all(string& str,const string & old_value,const string & new_value);
+string& replace_all_distinct(string& str,const string & old_value,const string & new_value);
+
 #endif

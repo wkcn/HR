@@ -1,5 +1,17 @@
 #include "Database.h"
 
+Database::Database(){
+	ifstream fin("help.txt");
+	string str;
+	while(!fin.eof()){
+		getline(fin,str);
+		helpText << str << endl;
+	}
+	fin.close();
+
+	Load();//读取员工数据
+}
+
 Database::~Database(){
 	for(auto &mp : staffs){
 		Staff *p = mp.second;
@@ -43,6 +55,7 @@ void Database::Save(){
 		Achievement ach = p->GetAchievement();
 		fout << ach.sales << "#" << ach.events << endl;
 	}
+	fout.close();
 }
 
 void Database::Load(){ 
@@ -90,6 +103,7 @@ void Database::Load(){
 		
 		staffs[id] = p;
 	} 
+	fin.close();
 }
 
 int Database::ISP(const string &op){
@@ -212,38 +226,167 @@ Exp* Database::Build(const string filter){
 	}
 */
 	stack<Exp*> es;
-	try{
-		for (size_t i = 0; i < bac.size();++i){
-			if (kinds[i]){
-				//符号(这里都是二元操作符)
-				Exp *t = new Exp();
-				t -> rv = es.top();es.pop();
+	for (size_t i = 0; i < bac.size();++i){
+		if (kinds[i]){
+			//符号(这里都是二元操作符)
+			Exp *t = new Exp();
+			if(es.empty())throw "缺少右操作数";
+			t -> rv = es.top();es.pop();
+			if(es.empty())throw "缺少左操作数";
 				t -> lv = es.top();es.pop();
+			t -> name = bac[i];
+			t -> kind = EXP_OP;
+			es.push(t);
+		}else{
+			Exp *t = new Exp();
+			if (bac[i][0] == '-' || (bac[i][0] >= '0' && bac[i][0] <= '9')){
+				t -> kind = EXP_NUM;
 				t -> name = bac[i];
-				t -> kind = EXP_OP;
-				es.push(t);
 			}else{
-				Exp *t = new Exp();
-				if (bac[i][0] == '-' || (bac[i][0] >= '0' && bac[i][0] <= '9')){
-					t -> kind = EXP_NUM;
-					t -> name = bac[i];
+				if (bac[i][0] == '\"' || bac[i][0] == '\"'){
+					t -> kind = EXP_STR;
+					t -> name = bac[i].substr(1,bac[i].size()-2);
 				}else{
-					if (bac[i][0] == '\"' || bac[i][0] == '\"'){
-						t -> kind = EXP_STR;
-						t -> name = bac[i].substr(1,bac[i].size()-2);
-					}else{
-						t -> kind = EXP_VAR;
-						t -> name = bac[i];
+					t -> kind = EXP_VAR;
+					t -> name = bac[i];
+				}
+			}
+			es.push(t);
+		}
+	}
+	Exp *root = es.top();es.pop();
+	if (es.empty())return root;
+	throw "您输入的表达式有误，不能完全解析";
+	return 0;
+}
+
+void Database::JumpSpace(const string &s,size_t &poi){
+	while (poi < s.size() && isBlank(s[poi]))++poi;
+}
+
+string Database::NextStr(const string &s,size_t &poi,char c){
+	JumpSpace(s,poi);
+	string buf;
+	for(;poi < s.size();++poi){
+		if (s[poi] == c)break;
+		else buf += s[poi];
+	}
+	++poi;
+	return buf;
+}
+
+string Database::GetSourceName(string s){
+	//得到原名并转为小写
+	if (alias.count(StrLowwer(s)))return alias[s];
+	return StrLowwer(s);
+}
+
+void Database::ShowPat(){
+	//显示输入格式
+	cout << "个人状态(state)：" << endl;
+	cout << "在职：0" << endl;
+	cout << "离职：1" << endl;
+	cout << "请假：2" << endl;
+	cout << "字符串需要用单引号或双引号括起" << endl;
+}
+
+int Database::GetInt(string s){
+	for (char c:s){
+		if (c < '0' || c > '9')throw "请输入正确的正整数";
+	}
+	int r;
+	sscanf(s.c_str(),"%d",&r);
+	return r;
+}
+string Database::GetStr(string s){
+	if (s.size()<=2)throw "请输入非空字符串";
+	if (s[0] == '\'' && s[s.size()-1] == '\'')return s;
+	if (s[0] == '\"' && s[s.size()-1] == '\"')return s;
+	throw "请输入合法字符串";
+}
+
+void Database::Execute(string com){
+	size_t tail = com.size()-1;
+	if (tail != 0 && isBlank(com[tail]))--tail;
+	com = com.substr(0,tail+1);
+	size_t poi = 0;
+	string ex = NextStr(com,poi,' ');
+	if (IgnoreLU(ex,"help")){
+		cout << helpText.str()<<endl;//输出帮助文档
+	}else if (IgnoreLU(ex,"insert") || ex == "i"){
+		string pro = NextStr(com,poi,' ');
+		if (pro.empty()){
+			cout << "插入使用方法" << endl << endl;
+			ShowPat();
+			cout << endl;
+			cout << "insert salesman (id,name,age,state,manager_id,sales)" << endl;
+			cout << "其中manager_id是其所属销售经理编号，sales为销售额" << endl;
+			cout << "如: insert salesman (0,'Jack',16,0,5,60)" << endl << endl;
+			cout << "insert manager (id,name,age,state,events)" << endl;
+			cout << "如: insert manager (1,'Sam',18,0,8)" << endl;
+			cout << "其中events是完成的任务数" << endl << endl;
+
+			cout << "insert salesmanager (id,name,age,state,events)" << endl;
+			cout << "如: insert salesmanager (39,'SmallBoss',21,2,17)" << endl;
+			cout << "不需要填写销售经理所管销售者,但销售经理的输入时间应先于所管销售者" << endl << endl;
+
+		}else{
+			//JumpSpace(com,poi);
+			cout << poi <<endl;
+			cout << com[poi] << "-" << com[com.size()-1] << endl;
+			if (com[poi] == '(' && com[com.size()-1] == ')'){
+				pro = GetSourceName(pro);
+				vector<string> sp;
+				StrSplit(com.substr(poi+1,com.size()-poi-2),sp,',');
+				if (pro == "salesman"){
+					try{
+						//insert salesman (id,name,age,state,manager_id,sales)
+						int id = GetInt(sp[0]);
+						string name = GetStr(sp[1]);
+						int age = GetInt(sp[2]);
+						STAFF_STATE state = STAFF_STATE(GetInt(sp[3]));
+						int manager_id = GetInt(sp[4]);
+						int sales = GetInt(sp[5]);
+						while (staffs.count(id) > 0){
+							cout << "已存在编号为" << id << "的员工" << endl;
+							cout << "请重新输入编号:" << endl;
+							cin >> id;
+						}
+						SalesMan *p = new SalesMan(id,name,age,state);
+						p -> SetManagerID(manager_id);
+						p -> SetSales(sales);
+						staffs[id] = dynamic_cast<Staff*>(p);
+						cout << "添加成功！" << endl;
+					}catch(char s){
+						cout << s <<endl;
+					}catch(...){
+						cout << "输入错误" << endl;
 					}
 				}
-				es.push(t);
+			}else{
+				cout << "括号不存在或不匹配" << endl;
 			}
 		}
-		Exp *root = es.top();es.pop();
-		if (es.empty())return root;
-		throw "您输入的表达式有误，不能完全解析";
-	}catch(...){
-		throw "您输入的表达式有误，缺少了参数";
-	}	
-	return 0;
+	}else if (IgnoreLU(ex,"alias")){
+		string source = NextStr(com,poi,' ');
+		string target = NextStr(com,poi,' ');
+		if (target.empty()){
+			cout << "别名使用方法：alias manager mg" << endl;
+			cout << "即可用mg代替manager，删除该别名方法alias clear mg"<<endl;
+			cout << "注意：别名不会保存，下次运行本应用时会重置" << endl;
+			if (alias.size() > 0)cout << "当前别名：" << endl;
+			else cout << "当前不存在别名" << endl;
+			for (auto &mp : alias){
+				cout << mp.first << " -> " << mp.second << endl;
+			}
+		}else{
+			if (source == "clear"){
+				alias.erase(target);
+				cout << "成功删除别名" << target << endl;
+			}else{
+				alias[target] = StrLowwer(source);
+				cout << "成功添加别名" << target << " -> " << source << endl;
+			}
+		}
+	}
 }

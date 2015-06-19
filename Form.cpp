@@ -105,6 +105,7 @@ size_t Form::GetFontSize(const string s){
 	return len;
 }
 
+/*
 int main(){
 	Form f;
 	f.write(0,0,"wwwaa");
@@ -118,3 +119,4 @@ int main(){
 	f.print();
 	return 0;
 }
+*/
