@@ -27,7 +27,7 @@ string ITOS(int num){
 	return str;
 }
 
-char WordLowwer(char c){
+char WordLower(char c){
 	if (c >= 'A' && c <= 'Z')return c - 'A' + 'a';
 	return c;
 }
@@ -37,8 +37,8 @@ bool IgnoreLU(const string a,const string b){
 	bool can = true;
 	for(unsigned int i = 0;i<a.size();++i){
 		//simply compare
-		char q = WordLowwer(a[i]);
-		char w = WordLowwer(b[i]);
+		char q = WordLower(a[i]);
+		char w = WordLower(b[i]);
 		int t = q - w;
 		if (t%26 != 0){
 			can = false;
@@ -48,7 +48,7 @@ bool IgnoreLU(const string a,const string b){
 	return can;
 }
 
-string StrLowwer(const string &s){
+string StrLower(const string &s){
 	string res;
 	for(const char &c:s){
 		if(c >= 'A' && c <= 'Z'){
@@ -62,6 +62,28 @@ string StrLowwer(const string &s){
 
 bool isBlank(char c){
 	return (c == ' ' || c == '\t' || c == '\n' || c == '\b' || c == '\r' || c == -1);
+}
+
+bool MatchStr(const string &name, const string &filter, size_t i, size_t j){
+	if (i >= name.size() && j >= filter.size())return true;
+	if ((i >= name.size()&&j<filter.size())){
+		return false;
+	}
+	if (filter[j] == '?'){
+		return MatchStr(name, filter, ++i, ++j);
+	}else if (filter[j] == '*'){
+		while (i < name.size()){
+			if (MatchStr(name,filter,i,j+1)){
+				return true;
+			}
+			else{
+				++i;
+			}
+		}
+		return (j==filter.size()-1);
+	}
+	if (name[i] == filter[j])return MatchStr(name, filter, ++i, ++j);
+	return false;
 }
 
 //以下两个字符串替换函数摘录自 http://blog.csdn.net/cll131421/article/details/7959909

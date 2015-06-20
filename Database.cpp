@@ -1,6 +1,73 @@
 #include "Database.h"
 #include "Form.h"
 
+//SLang
+/*
+#include "BigInt.h"
+#include "SBuild.h"
+#include "SVM.h"
+*/
+#include "./SLang/SLang.h"
+
+bool Comparer::operator()(Staff *a,Staff *b){
+	for (size_t i = 0;i < vks.size();++i){
+		VALUE_KIND vk = vks[i];
+		bool z = zs[i];
+		if (vk == NAME){
+			if(a->GetName() != b->GetName())return (a->GetName() < b->GetName()) ^ z;
+		}else{
+			int na = GetValue(a,vk);
+			int nb = GetValue(b,vk);
+			if (na != nb)return (na < nb)^z;
+		}
+	}
+	return a->GetID() < b->GetID();
+}
+void Comparer::clear(){
+	vks.clear();
+	zs.clear();
+}
+void Comparer::push(VALUE_KIND vk,bool z){
+	vks.push_back(vk);
+	zs.push_back(z);
+}
+void Comparer::show(){
+	if (vks.empty()){
+		cout << "ID+" << endl;
+		return;
+	}
+	//ID,NAME,KIND,AGE,STATE,MANAGER_ID,SALES,EVENTS
+	string ds[] = {"ID","Name","Kind","Age","State","MangagerID","Sales","events"};
+	bool first = true;
+	for(size_t i = 0;i<vks.size();++i){
+		if(!first)cout << " > ";
+		first = false;
+		int q = int(vks[i]);
+		cout << ds[q];
+		if (!zs[i])cout<<'+';
+		else cout<<'-';
+	}
+	cout << endl;
+}
+int Comparer::GetValue(Staff *s,VALUE_KIND vk){
+	switch (vk){
+		case ID:
+			return s->GetID();
+		case KIND:
+			return s->GetKind();
+		case AGE:
+			return s->GetAge();
+		case STATE:
+			return s->GetState();	
+		case SALES:
+			return s->GetAchievement().sales;
+		case EVENTS:
+			return s->GetAchievement().events;
+		default:
+			//不计算manager id
+			return -1;
+	}
+}
 Database::Database(){
 	//读取帮助文档
 	ifstream fin("help.txt");
@@ -17,6 +84,7 @@ Database::Database(){
 	page_items = 10;
 	autosave = true;
 	changed = false;
+	viewFilter = 0;
 
 	//读取数据
 	try{
@@ -27,6 +95,7 @@ Database::Database(){
 
 
 	cout << "当前共" << staffs.size() << "条数据" << endl;
+	Show();
 }
 
 Database::~Database(){
@@ -134,12 +203,84 @@ void Database::Load(){
 	Update();
 }
 
-void Database::Show(){
-	vector<Staff *> vs;
+int Database::GetStaffValue(Staff *st,string varname){
+	if (varname == "id")return st->GetID();
+	if (varname == "age")return st->GetAge();
+	if (varname == "kind" || varname == "job")return int(st->GetKind());
+	if (varname == "state")return int(st->GetState());
+	if (varname == "manager_id"){
+		if (st->GetKind() == SALESMAN){
+			return dynamic_cast<SalesMan*>(st)->GetManagerID();
+		}else{
+			return -1;
+		}
+	}
+	Achievement ach = st->GetAchievement();
+	if (varname == "sales")return ach.sales;
+	if (varname == "events")return ach.events;
+	return -1;
+}
+
+bool Database::isTruth(Staff *st,Exp *filter){
+	try{
+		if (filter -> kind != EXP_OP)return true;
+		//根据C++特性，能够自动短路的
+		if (filter -> name == "and")
+			return isTruth(st,filter->lv) && isTruth(st,filter->rv);
+		if (filter -> name == "or")
+			return isTruth(st,filter->lv) || isTruth(st,filter->rv);
+		//剩下的是=,>,<,<>,!=,<=,>=
+		Exp *lv = filter -> lv;
+		Exp *rv = filter -> rv;	
+		if (rv->kind == EXP_STR){
+			//名字，字符串比较
+			string name = st -> GetName();
+			if (filter->name[0] == '='){
+				//防止出现==输入
+				return MatchStr(name,rv->name);
+			}else if (filter->name == "!=" || filter -> name == "<>"){
+				return !MatchStr(name,rv->name);
+			}
+			if (filter->name == "<")return name < rv->name;
+			if (filter->name == ">")return name > rv->name;
+			if (filter->name == "<=")return name <= rv->name;
+			if (filter->name == ">=")return name >= rv->name;
+		}else{
+			int num = GetStaffValue(st,lv->name);
+			int vn = STOI(rv->name);
+			if (filter -> name[0] == '=')return num == vn;
+			if (filter -> name == "!=" || filter -> name == "<>")return num != vn;
+			if (filter -> name == "<")return num < vn;
+			if (filter -> name == ">")return num > vn;
+			if (filter -> name == "<=")return num <= vn;
+			if (filter -> name == ">=")return num >= vn;
+		}
+	}catch(...){
+		return false;
+	}
+	return true;//出现异常，暂时不处理
+}
+
+void Database::GetStaffList(vector<Staff*> &vs,Exp *filter){
+	//确保过滤器语法正确
 	for(auto &mp : staffs){
-		vs.push_back(mp.second);
+		bool can = true;
+		if (filter){
+			if (!isTruth(mp.second,filter)){
+				can = false;
+			}
+		}
+		if(can)vs.push_back(mp.second);
 	}	
-	sort(vs.begin(),vs.end(),Comparer(0));
+}
+
+void Database::Show(Exp * filter){
+	vector<Staff *> vs;
+	if (!filter)
+		filter = viewFilter;
+	GetStaffList(vs,filter);
+	sort(vs.begin(),vs.end(),comparer);
+	max_page = ceil(vs.size() * 1.0 / page_items);
 
 	Form form;
 	//Header
@@ -147,7 +288,7 @@ void Database::Show(){
 	form.write(0,1,"Name");
 	form.write(0,2,"Age");
 	form.write(0,3,"State");
-	form.write(0,4,"Job");
+	form.write(0,4,"Kind");
 	form.write(0,5,"Manager ID");
 	form.write(0,6,"Sales");
 	form.write(0,7,"Events");
@@ -214,6 +355,55 @@ void Database::Show(){
 	form.print();
 	cout << "第" << cur_page << "/" << max_page << "页" << "\t";
 	cout << "( n:下一页 N:上一页 gg 39:跳转到39页 )" << endl;
+	cout << "筛选条件：" << filterName << endl << endl;
+
+	//显示业绩最高，最低的销售员，销售员们的平均业绩
+	set<int> ma_ids,mi_ids;
+	int ma_achi,mi_achi;//最高业绩,最低业绩
+	BigInt sum = 0;
+
+	bool first = true;
+	int num = 0;
+	for(auto p:vs){
+		if (p->GetKind() != SALESMAN)continue;
+		++num;
+		Achievement achievement = p -> GetAchievement();
+		int achi = achievement.sales + achievement.events;
+		if (achi > ma_achi || first){
+			ma_achi = achi;
+			ma_ids.clear();
+		}
+		if (achi >= ma_achi)ma_ids.insert(p->GetID());
+
+		if (achi < mi_achi || first){
+			mi_achi = achi;
+			mi_ids.clear();
+		}
+		if (achi <= mi_achi)mi_ids.insert(p->GetID());
+
+		sum += achi;
+		first = false;
+	}
+	if(num==0)return;
+	BigInt avg = sum / BigInt(num);
+
+	cout << "当前筛选结果中("<<num<<"名销售员)：" << endl;
+	cout << "业绩最低的销售员(业绩："<<mi_achi<<"):\n";
+	PrintStaffs(mi_ids);	
+	cout << "业绩最高的销售员(业绩："<<ma_achi<<"):\n";
+	PrintStaffs(ma_ids);	
+	cout << "平均业绩："<< avg << endl;
+} 
+
+void Database::PrintStaffs(set<int> &s){
+	bool first = true;
+	for (auto u:s){
+		Staff *p = staffs[u];
+		if (!first)cout<<",";
+		cout << p->GetName()<<"("<<p->GetID()<<")";
+		first = false;
+	}
+	cout << endl;
 }
 
 void Database::ChangePage(size_t n){
@@ -242,7 +432,6 @@ void Database::Update(){
 			ma -> slaves.push_back(ps);
 		}
 	}
-	max_page = ceil(staffs.size() * 1.0 / page_items);
 }
 
 int Database::ISP(const string &op){
@@ -372,7 +561,7 @@ Exp* Database::Build(const string filter){
 			if(es.empty())throw "缺少右操作数";
 			t -> rv = es.top();es.pop();
 			if(es.empty())throw "缺少左操作数";
-				t -> lv = es.top();es.pop();
+			t -> lv = es.top();es.pop();
 			t -> name = bac[i];
 			t -> kind = EXP_OP;
 			es.push(t);
@@ -382,12 +571,12 @@ Exp* Database::Build(const string filter){
 				t -> kind = EXP_NUM;
 				t -> name = bac[i];
 			}else{
-				if (bac[i][0] == '\"' || bac[i][0] == '\"'){
+				if (bac[i][0] == '\'' || bac[i][0] == '\"'){
 					t -> kind = EXP_STR;
 					t -> name = bac[i].substr(1,bac[i].size()-2);
 				}else{
 					t -> kind = EXP_VAR;
-					t -> name = bac[i];
+					t -> name = StrLower(bac[i]);
 				}
 			}
 			es.push(t);
@@ -416,8 +605,8 @@ string Database::NextStr(const string &s,size_t &poi,char c){
 
 string Database::GetSourceName(string s){
 	//得到原名并转为小写
-	if (alias.count(StrLowwer(s)))return alias[s];
-	return StrLowwer(s);
+	if (alias.count(StrLower(s)))return alias[s];
+	return StrLower(s);
 }
 
 void Database::ShowPat(){
@@ -509,7 +698,7 @@ void Database::ReadInfo(vector<string> &sp,int &id,string &name,int &age,STAFF_S
 	}
 
 	while (st > 2 || st < 0){
-		cout << "请输入正确员工状态(0:在职,1:离职,2:请假)" << endl;
+		cout << "请输入正确的员工状态(0:在职,1:离职,2:请假)" << endl;
 		try{
 			ReadInt(st);
 		}catch(const char * s){
@@ -526,7 +715,176 @@ void Database::Execute(string com){
 	com = com.substr(0,tail+1);
 	size_t poi = 0;
 	string ex = NextStr(com,poi,' ');
-	if (IgnoreLU(ex,"show")){
+	if (IgnoreLU(ex,"sort")){
+		vector<string> vs;
+		StrSplit(com,vs,' ');
+		comparer.clear();
+		for (size_t i = 1;i<vs.size();++i){
+			char c = vs[i][vs[i].size()-1];
+			bool has = false;
+			bool z = 0;
+			if (c == '-'){
+				z = 1;
+				has = true;
+			}else if (c == '+')has=true;
+			string s = vs[i].substr(0,vs[i].size()-size_t(has));
+			//cout << s<<"--"<<vs[i]<<endl;
+			if (IgnoreLU(s,"id"))comparer.push(ID,z);
+			else if (IgnoreLU(s,"name"))comparer.push(NAME,z);
+			else if (IgnoreLU(s,"kind"))comparer.push(KIND,z);
+			else if (IgnoreLU(s,"age"))comparer.push(AGE,z);
+			else if (IgnoreLU(s,"state"))comparer.push(STATE,z);
+			else if (IgnoreLU(s,"sales"))comparer.push(SALES,z);
+			else if (IgnoreLU(s,"events"))comparer.push(EVENTS,z);
+		}
+		cout << "当前排序优先级别为" << endl;
+		comparer.show();
+		Show();
+	}else if (IgnoreLU(ex,"update") || IgnoreLU(ex,"set")){
+		size_t wi = com.rfind("where");
+		if (wi == string::npos){
+			cout << "请填写过滤条件，过滤器的使用方法在帮助文档里。" << endl;
+		}else{
+			Exp* oldFilter = viewFilter;
+			string oldName = filterName;
+			try{
+				if (com[poi] == '*'){
+					filterName = "";
+					viewFilter = 0;
+				}else{
+					string condition = com.substr(wi+5);
+					viewFilter = Build(condition);
+					filterName = condition; 
+				}
+			}catch(const char *s){
+				cout << s << endl;
+			}
+			Show();
+
+			
+			vector<Staff *> vs;
+			GetStaffList(vs,viewFilter);
+
+			string choice;
+			while(true){
+				cout << "是否要对这些数据进行操作？yes:是，no:否" << endl;
+				cin >> choice;
+				if (IgnoreLU(choice,"yes") || choice == "是"){
+					SVM vm;
+					SBuild bu;
+					streamx ss;
+					//srand(size_t(time(0)));
+					bu.SetStream(ss);
+					JumpSpace(com,poi);
+					ss << "#" << com.substr(poi,wi - poi);//使用SLang的语法糖 #展开
+					SExp *e = bu.Build();//操作生成
+
+					for (auto &ps:vs){
+						vm.SetVar("id",ps->GetID());
+						vm.SetVar("kind",int(ps->GetKind()));
+						vm.SetVar("age",ps->GetAge());
+						vm.SetVar("state",ps->GetState());
+						vm.SetVar("manager_id",-1);
+						if (ps->GetKind() == SALESMAN){
+							SalesMan *psm = dynamic_cast<SalesMan*>(ps);
+							vm.SetVar("manager_id",psm->GetManagerID());
+						}
+						vm.SetVar("sales",ps->GetAchievement().sales);
+						vm.SetVar("events",ps->GetAchievement().events);
+
+						vm.Eval(e);
+
+						int id = vm.GetVar("id");
+						int kind = vm.GetVar("kind");
+						int age = vm.GetVar("age");
+						int state = vm.GetVar("state");
+						int manager_id = vm.GetVar("manager_id");
+						int sales = vm.GetVar("sales");
+						int events = vm.GetVar("events");
+
+						if (age < 200 && state <= 2){
+							ps -> ChangeAge(age);
+							ps -> ChangeState(STAFF_STATE(state));
+							if (ps -> GetKind() == SALESMAN){
+								SalesMan *p = dynamic_cast<SalesMan*>(ps);
+								p -> SetManagerID(manager_id);
+								p -> SetSales(sales);
+							}else{
+								Manager *p = dynamic_cast<Manager*>(ps);
+								p -> SetEvents(events);
+							}
+							//太麻烦，不做更改id和kind了
+							if (ps -> GetID() != id && staffs.count(id)==0){
+								if (ps -> GetKind() == SALESMANAGER){
+
+								}
+							}
+						}else{
+							cout << "员工:" << ps->GetName() << "(" << ps->GetID() << ")更新数据时出现错误" << endl;
+						}
+
+					}
+
+					cout << "更新操作完毕" << endl;
+					filterName = oldName;
+					viewFilter = oldFilter;
+					changed = true;
+					Update();
+					Show();
+					break;
+
+				}else{
+					if (IgnoreLU(choice,"no") || choice == "否"){
+						cout << "已取消操作" <<endl;
+						filterName = oldName;
+						viewFilter = oldFilter;
+						break;
+					}else{
+					}
+				}
+			}
+
+		}
+	}else if (IgnoreLU(ex,"filter") || ex == "f"){
+		if (poi >= com.size()){
+			cout << "请填写过滤条件，过滤器的使用方法在帮助文档里。" << endl;
+		}else{
+			try{
+				if (com[poi] == '*'){
+					delete viewFilter;
+					filterName.clear();
+					cout << "成功取消过滤器" << endl;
+				}else{
+					viewFilter = Build(com.substr(poi));
+					filterName = com.substr(poi);
+					cout << "成功设置过滤器："<< filterName << endl;
+				}
+			}catch(const char *s){
+				cout << s << endl;
+			}
+		}
+	}else if (IgnoreLU(ex,"select")){
+		if (poi >= com.size()){
+			cout << "请填写过滤条件，过滤器的使用方法在帮助文档里。" << endl;
+		}else{
+			Exp* oldFilter = viewFilter;
+			string oldName = filterName;
+			try{
+				if (com[poi] == '*'){
+					filterName = "";
+					viewFilter = 0;
+				}else{
+					viewFilter = Build(com.substr(poi));
+					filterName = com.substr(poi);
+				}
+			}catch(const char *s){
+				cout << s << endl;
+			}
+			Show();
+			filterName = oldName;
+			viewFilter = oldFilter;
+		}
+	}else if (IgnoreLU(ex,"show")){
 		string u = NextStr(com,poi,' ');
 		if (!u.empty()){
 			int n = STOI(u);
@@ -534,13 +892,36 @@ void Database::Execute(string com){
 				cout << "每页显示项目最少为6项" << endl;
 			}else{
 				//更新每页最大项目数
+				if (n > 100)n = 100;//最多100项同一页显示
 				page_items = n;
 				cur_page = 1;
-				max_page = ceil(staffs.size() * 1.0 / page_items);
 			}
 		}
 		Show();
-	}if (ex == "n"){
+	}else if (IgnoreLU(ex,"rename")){
+		string u = NextStr(com,poi,' ');
+		if (u.empty()){
+			cout << "更改名字用法"<<endl;
+			cout << "rename <id> 新名字"<<endl;
+			cout << "如:rename 1 \'haha\'"<<endl;
+		}else{
+			try{
+				int id = GetInt(u);
+				u = NextStr(com,poi,' ');
+				if (u.empty())throw "请输入新的名字";
+				string name = GetStr(u);
+				if (staffs.count(id)){
+					staffs[id]->ChangeName(name);
+					cout << "更改成功！" << endl;
+					changed = true;
+				}else{
+					cout << "不存在编号为" << id << "的员工!" << endl;
+				}
+			}catch(const char *s){
+				cout << s << endl;
+			}
+		}
+	}else if (ex == "n"){
 		int n = 1;
 		string u = NextStr(com,poi,' ');
 		if (!u.empty())n = STOI(u);
@@ -689,7 +1070,7 @@ void Database::Execute(string com){
 				alias.erase(target);
 				cout << "成功删除别名" << target << endl;
 			}else{
-				alias[target] = StrLowwer(source);
+				alias[target] = StrLower(source);
 				cout << "成功添加别名" << target << " -> " << source << endl;
 			}
 		}

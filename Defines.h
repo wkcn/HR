@@ -1,5 +1,5 @@
-#ifndef DEFINES_H
-#define DEFINES_H
+#ifndef HR_DEFINES_H
+#define HR_DEFINES_H
 
 #include <iostream>
 #include <fstream>
@@ -38,13 +38,15 @@ void StrSplit(const string &str,vector<string> &res,char c = '\n');	//分割字�
 int STOI(const string &str);	//字符串转数字
 string ITOS(int num);
 
-char WordLowwer(char c);
+char WordLower(char c);
 
 bool IgnoreLU(const string a,const string b);
 
-string StrLowwer(const string &s);
+string StrLower(const string &s);
 
 bool isBlank(char c);
+
+bool MatchStr(const string &name,const string &filter,size_t i=0,size_t j=0);
 
 //替换字符串函数
 //摘录自 http://blog.csdn.net/cll131421/article/details/7959909
