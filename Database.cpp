@@ -18,8 +18,11 @@ Database::Database(){
 }
 
 Database::~Database(){
+	//虚函数的delete应该怎样？
 	for(auto &mp : staffs){
 		Staff *p = mp.second;
+		delete p;
+		continue;
 		SalesManager *psalesManager = dynamic_cast<SalesManager*>(p);
 		if(psalesManager){
 			delete psalesManager;
@@ -130,6 +133,61 @@ void Database::Show(){
 	form.write(0,5,"Manager ID");
 	form.write(0,6,"Sales");
 	form.write(0,7,"Events");
+
+	size_t start = (cur_page - 1) * page_items;
+	size_t end = start + page_items;
+	//[start,end)
+	if (end > vs.size())end = vs.size();
+	size_t items = end - start;
+	for (size_t i = 0;i < items;++i){
+		//多态
+		size_t r = start + i;
+		Staff *s = vs[r];
+		form.write(i+1,0,ITOS(s->GetID()));
+		form.write(i+1,1,s->GetName());
+		form.write(i+1,2,ITOS(s->GetAge()));
+		switch(s->GetState()){
+			case ACTIVE:
+				form.write(i+1,3,"在职");break;
+			case RESIGN:
+				form.write(i+1,3,"离职");break;
+			case LEAVE:
+				form.write(i+1,3,"请假");break;
+		}
+		switch(s->GetKind()){
+			case SALESMAN:
+				form.write(i+1,4,"SalesMan");break;
+			case MANAGER:
+				form.write(i+1,4,"Manager");break;
+			case SALESMANAGER:
+				form.write(i+1,4,"SalesManager");break;
+			case STAFF:
+				break;
+		}
+		SalesMan *psalesman = dynamic_cast<SalesMan*>(s);
+	    Manager *pmanager = dynamic_cast<Manager*>(s);
+		SalesManager *psalesmanager = dynamic_cast<SalesManager*>(s);
+		//因为必定只有3类
+		if (psalesmanager){
+			form.write(i+1,5,"--");
+			Achievement ac = psalesmanager -> GetAchievement();
+			form.write(i+1,6,ITOS(ac.sales));
+			form.write(i+1,7,ITOS(ac.events));
+		}else{
+			if (psalesman){
+				form.write(i+1,5,ITOS(psalesman-> GetManagerID()));
+				Achievement ac = psalesman -> GetAchievement();
+				form.write(i+1,6,ITOS(ac.sales));
+				form.write(i+1,7,"--");
+			}else{
+				form.write(i+1,5,"--");
+				Achievement ac = pmanager -> GetAchievement();
+				form.write(i+1,6,"--");
+				form.write(i+1,7,ITOS(ac.events));
+			}
+		}
+	}	
+
 	form.print();
 }
 
@@ -150,11 +208,11 @@ int Database::ICP(const string &op){
 }
 
 Exp* Database::Build(const string filter){
-	
+
 	vector<string> vs;
 	string buf;
 	//分词
-	
+
 	static const int symsSize = 18;
 	static string syms[symsSize] = {"(",")",">","<",">=","<=","==","=","!=","<>","+","-","*","/","+=","-=","*=","/="};
 	static string checkstr = "()><=!+-*/";
@@ -318,6 +376,7 @@ void Database::ShowPat(){
 }
 
 int Database::GetInt(string s){
+	if(s.size()>9)throw "请输入9位以内的数字";
 	for (char c:s){
 		if (c < '0' || c > '9')throw "请输入正确的正整数";
 	}
@@ -327,9 +386,79 @@ int Database::GetInt(string s){
 }
 string Database::GetStr(string s){
 	if (s.size()<=2)throw "请输入非空字符串";
-	if (s[0] == '\'' && s[s.size()-1] == '\'')return s;
-	if (s[0] == '\"' && s[s.size()-1] == '\"')return s;
+	if (s[0] == '\'' && s[s.size()-1] == '\'')return s.substr(1,s.size()-2);
+	if (s[0] == '\"' && s[s.size()-1] == '\"')return s.substr(1,s.size()-2);
 	throw "请输入合法字符串";
+}
+
+void Database::ChangeManagerID(int id,int new_manager_id,int old_manager_id ){
+	if (old_manager_id != -1){
+		slaves[old_manager_id].erase(id);
+	}
+	slaves[new_manager_id].insert(id);
+}
+
+
+void Database::ReadInt(int &i){
+	string buf;
+	cin >> buf;
+	i = GetInt(buf);
+}
+
+void Database::ReadInfo(vector<string> &sp,int &id,string &name,int &age,STAFF_STATE &state){
+
+	int st = 0;
+	name = GetStr(sp[1]);
+	id = -1;
+	age = -1;
+	st = -1;
+
+	try{
+		id = GetInt(sp[0]);
+		age = GetInt(sp[2]);
+		st = GetInt(sp[3]);
+	}catch (const char * s){
+		cout << s << endl;
+	}
+
+	//check
+	
+
+	while (staffs.count(id) > 0 || id < 0){
+		if (id >= 0)cout << "已存在编号为" << id << "的员工" << endl;
+		else cout << "您需要输入非负数编号" << endl;
+		cout << "请重新输入编号:" << endl;
+		//cin >> id;
+		//scanf("%d",&id);//c++的读入好像有点问题，貌似是缓存上的问题
+		//读取上出了问题
+		try{
+			ReadInt(id);
+		}catch(const char * s){
+			id = -1;
+			cout << s << endl;
+		}
+	}
+
+	while (age > 200 || age < 0){
+		cout << "这个年龄真的没问题吗？" << endl;
+		cout << "请重新输入:" << endl;
+		try{
+			ReadInt(age);
+		}catch(const char * s){
+			cout << s << endl;
+		}
+	}
+
+	while (st > 2 || st < 0){
+		cout << "请输入正确员工状态(0:在职,1:离职,2:请假)" << endl;
+		try{
+			ReadInt(st);
+		}catch(const char * s){
+			cout << s << endl;
+		}
+	}
+
+	state = STAFF_STATE(st);
 }
 
 void Database::Execute(string com){
@@ -371,29 +500,20 @@ void Database::Execute(string com){
 					try{
 						if (sp.size() < 6)throw "输入参数过少";
 						//insert salesman (id,name,age,state,manager_id,sales)
-						int id = GetInt(sp[0]);
-						string name = GetStr(sp[1]);
 
-						int age = GetInt(sp[2]);
-						if (age > 200){
-							throw "这个年龄没问题吗？";
-						}
-						int st = GetInt(sp[3]);
-						if (st < 0 || st > 2)throw "输入员工状态错误！";
-
-						STAFF_STATE state = STAFF_STATE(st);
+						int id,age;
+						string name;
+						STAFF_STATE state;
+						ReadInfo(sp,id,name,age,state);
 
 						int manager_id = GetInt(sp[4]);
 						int sales = GetInt(sp[5]);
-						while (staffs.count(id) > 0){
-							cout << "已存在编号为" << id << "的员工" << endl;
-							cout << "请重新输入编号:" << endl;
-							cin >> id;
-						}
+
 						SalesMan *p = new SalesMan(id,name,age,state);
 						p -> SetManagerID(manager_id);
 						p -> SetSales(sales);
 						staffs[id] = dynamic_cast<Staff*>(p);
+						ChangeManagerID(id,manager_id);
 						cout << "添加成功！" << endl;
 					}catch(const char *s){
 						cout << s <<endl;
@@ -404,24 +524,14 @@ void Database::Execute(string com){
 					try{
 						if (sp.size() < 5)throw "输入参数过少";
 						//insert manager (id,name,age,state,events)
-						int id = GetInt(sp[0]);
-						string name = GetStr(sp[1]);
-
-						int age = GetInt(sp[2]);
-						if (age > 200){
-							throw "这个年龄没问题吗？";
-						}
-						int st = GetInt(sp[3]);
-						if (st < 0 || st > 2)throw "输入员工状态错误！";
-
-						STAFF_STATE state = STAFF_STATE(st);
+						
+						int id,age;
+						string name;
+						STAFF_STATE state;
+						ReadInfo(sp,id,name,age,state);
 
 						int events = GetInt(sp[4]);
-						while (staffs.count(id) > 0){
-							cout << "已存在编号为" << id << "的员工" << endl;
-							cout << "请重新输入编号:" << endl;
-							cin >> id;
-						}
+
 						Manager *p = new Manager(id,name,age,state);
 						p -> SetEvents(events);
 						staffs[id] = dynamic_cast<Staff*>(p);
@@ -435,25 +545,14 @@ void Database::Execute(string com){
 					try{
 						if (sp.size() < 5)throw "输入参数过少";
 						//insert salesmanager (id,name,age,state,events)
-						int id = GetInt(sp[0]);
-						string name = GetStr(sp[1]);
-
-						int age = GetInt(sp[2]);
-
-						if (age > 200){
-							throw "这个年龄没问题吗？";
-						}
-						int st = GetInt(sp[3]);
-						if (st < 0 || st > 2)throw "输入员工状态错误！";
-
-						STAFF_STATE state = STAFF_STATE(st);
+						
+						int id,age;
+						string name;
+						STAFF_STATE state;
+						ReadInfo(sp,id,name,age,state);
 
 						int events = GetInt(sp[4]);
-						while (staffs.count(id) > 0){
-							cout << "已存在编号为" << id << "的员工" << endl;
-							cout << "请重新输入编号:" << endl;
-							cin >> id;
-						}
+
 						SalesManager *p = new SalesManager(id,name,age,state);
 						p -> SetEvents(events);
 						staffs[id] = dynamic_cast<Staff*>(p);

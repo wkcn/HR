@@ -8,6 +8,7 @@
 #include <vector>
 #include <stack>
 #include <map>
+#include <set>
 #include <algorithm>
 
 #include <cstdio>
@@ -34,6 +35,7 @@ enum STAFF_KIND{
 
 void StrSplit(const string &str,vector<string> &res,char c = '\n');	//分割字符串
 int STOI(const string &str);	//字符串转数字
+string ITOS(int num);
 
 char WordLowwer(char c);
 

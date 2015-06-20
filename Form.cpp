@@ -10,14 +10,18 @@ void Form::write(int r,int c,const string s){
 		//datas[r]和widths的长度可能不等
 		widths.resize(c+1);
 	}
-	size_t ow = widths[c];
+	//更新第c列宽度
+	size_t ow = widths[c];//该列最大宽度
+	size_t sw = GetFontSize(datas[r][c]);//原字符串宽度
 	datas[r][c] = s;
 	size_t len = GetFontSize(s);
+	//cout << ow <<" len = "<< len <<  endl;
 	if (len > ow){
 		widths[c] = len;
-	}else if (len < ow){
+	}else if (len < ow && ow == sw){
 		UpdateWidth(c);
 	}
+	//cout << s << " " << widths[c] << endl;
 }
 
 void Form::write(int r,int c,int num){
@@ -40,6 +44,10 @@ void Form::print(){
 	if (datas.size() == 0){
 		cout << "表格为空！"<<endl;
 	}
+	//for (auto i:widths){
+	//	cout << i << " ";
+	//}
+	//cout << endl;
 	drawLine();
 	//header
 	printData(0,0);
@@ -81,10 +89,12 @@ void Form::printC(char c,int n){
 }
 
 void Form::UpdateWidth(int c){
+	//获取该列最大宽度
 	size_t ma = 0;
 	for (size_t r = 0;r < datas.size(); ++r){
-		if (size_t(c) < datas[r].size() && datas[r][c].size() > ma){
-			ma = GetFontSize(datas[r][c]);
+		if (size_t(c) < datas[r].size()){
+			size_t w = GetFontSize(datas[r][c]);//该格字符串宽度
+			if(w>ma)ma = GetFontSize(datas[r][c]);
 		}
 	}
 	widths[c] = ma;

@@ -15,10 +15,16 @@ void StrSplit(const string &str,vector<string> &res,char c){
 	if(!buf.empty())res.push_back(buf);
 }
 
+//这些是不作检查的转换
 int STOI(const string &str){
 	int i;
 	sscanf(str.c_str(),"%d",&i);
 	return i;
+}
+string ITOS(int num){
+	char str[64];
+	sprintf(str,"%d",num);
+	return str;
 }
 
 char WordLowwer(char c){

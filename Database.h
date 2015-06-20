@@ -51,12 +51,13 @@ class Database{
 private:
 	map<int,Staff *> staffs;	//为了使用多态，这里采用存储指针的方式。id(int)为主键
 	map<string,string> alias;   //员工职称的别名(别名，原名)
+	map<int,set<int>> slaves;   //从属关系,(管理者id,被管理者集合)
 	stringstream helpText;
 	vector<string> priority; //优先级
 	vector<bool> prirev; //逆序
-	int cur_page;//当前页数 从1开始
-	int max_page;//最大页数
-	int page_items;//每页项目数
+	size_t cur_page;//当前页数 从1开始
+	size_t max_page;//最大页数
+	size_t page_items;//每页项目数
 private:
 	int ISP(const string &op);
 	int ICP(const string &op);
@@ -65,8 +66,11 @@ private:
 	void JumpSpace(const string &s,size_t &poi);
 	void ShowPat();//显示输入格式
 	int GetInt(string s);
+	void ReadInt(int &i);
 	string GetStr(string s);
 	string GetSourceName(string s); //得到原名并转为小写
+	void ChangeManagerID(int id,int new_manager_id,int old_manager_id = -1);//更改所属管理者编号,-1代表之前不存在manager_id
+	void ReadInfo(vector<string> &sp,int &id,string &name,int &age,STAFF_STATE &state);//从用户输入读取员工信息
 public:
 	Database();
 	~Database();
