@@ -95,6 +95,7 @@ private:
 	void ChangePage(size_t n);
 	bool isTruth(Staff *st,Exp *filter);
 	void PrintStaffs(set<int> &);
+	void Report(Exp *repFilter,string repName);
 public:
 	Database();
 	~Database();

@@ -85,6 +85,7 @@ Database::Database(){
 	autosave = true;
 	changed = false;
 	viewFilter = 0;
+	filterName = "*";
 
 	//读取数据
 	try{
@@ -95,7 +96,7 @@ Database::Database(){
 
 
 	cout << "当前共" << staffs.size() << "条数据" << endl;
-	Show();
+	//Show();
 }
 
 Database::~Database(){
@@ -274,6 +275,49 @@ void Database::GetStaffList(vector<Staff*> &vs,Exp *filter){
 	}	
 }
 
+void Database::Report(Exp *repFilter,string repName){
+	vector<Staff *> vs;
+	GetStaffList(vs,repFilter);
+
+	//显示业绩最高，最低的销售员，销售员们的平均业绩
+	set<int> ma_ids,mi_ids;
+	int ma_achi,mi_achi;//最高业绩,最低业绩
+	BigInt sum = 0;
+
+	bool first = true;
+	int num = 0;
+	for(auto p:vs){
+		if (p->GetKind() != SALESMAN)continue;
+		++num;
+		Achievement achievement = p -> GetAchievement();
+		int achi = achievement.sales + achievement.events;
+		if (achi > ma_achi || first){
+			ma_achi = achi;
+			ma_ids.clear();
+		}
+		if (achi >= ma_achi)ma_ids.insert(p->GetID());
+
+		if (achi < mi_achi || first){
+			mi_achi = achi;
+			mi_ids.clear();
+		}
+		if (achi <= mi_achi)mi_ids.insert(p->GetID());
+
+		sum += achi;
+		first = false;
+	}
+	if(num==0)return;
+	BigInt avg = sum / BigInt(num);
+
+	cout << "筛选条件：" << repFilter << endl;
+	cout << "当前筛选结果中("<<num<<"名销售员)：" << endl;
+	cout << "业绩最低的销售员(业绩："<<mi_achi<<"):\n";
+	PrintStaffs(mi_ids);	
+	cout << "业绩最高的销售员(业绩："<<ma_achi<<"):\n";
+	PrintStaffs(ma_ids);	
+	cout << "平均业绩："<< avg << endl;
+}
+
 void Database::Show(Exp * filter){
 	vector<Staff *> vs;
 	if (!filter)
@@ -281,6 +325,7 @@ void Database::Show(Exp * filter){
 	GetStaffList(vs,filter);
 	sort(vs.begin(),vs.end(),comparer);
 	max_page = ceil(vs.size() * 1.0 / page_items);
+	if (cur_page > max_page)cur_page = max_page;
 
 	Form form;
 	//Header
@@ -352,47 +397,11 @@ void Database::Show(Exp * filter){
 		}
 	}	
 
+	cout << "筛选条件：" << filterName << endl;
 	form.print();
-	cout << "第" << cur_page << "/" << max_page << "页" << "\t";
+	cout << "第" << cur_page << "/" << max_page << "页 (共"<<vs.size()<<"项)" << "\t";
 	cout << "( n:下一页 N:上一页 gg 39:跳转到39页 )" << endl;
-	cout << "筛选条件：" << filterName << endl << endl;
 
-	//显示业绩最高，最低的销售员，销售员们的平均业绩
-	set<int> ma_ids,mi_ids;
-	int ma_achi,mi_achi;//最高业绩,最低业绩
-	BigInt sum = 0;
-
-	bool first = true;
-	int num = 0;
-	for(auto p:vs){
-		if (p->GetKind() != SALESMAN)continue;
-		++num;
-		Achievement achievement = p -> GetAchievement();
-		int achi = achievement.sales + achievement.events;
-		if (achi > ma_achi || first){
-			ma_achi = achi;
-			ma_ids.clear();
-		}
-		if (achi >= ma_achi)ma_ids.insert(p->GetID());
-
-		if (achi < mi_achi || first){
-			mi_achi = achi;
-			mi_ids.clear();
-		}
-		if (achi <= mi_achi)mi_ids.insert(p->GetID());
-
-		sum += achi;
-		first = false;
-	}
-	if(num==0)return;
-	BigInt avg = sum / BigInt(num);
-
-	cout << "当前筛选结果中("<<num<<"名销售员)：" << endl;
-	cout << "业绩最低的销售员(业绩："<<mi_achi<<"):\n";
-	PrintStaffs(mi_ids);	
-	cout << "业绩最高的销售员(业绩："<<ma_achi<<"):\n";
-	PrintStaffs(ma_ids);	
-	cout << "平均业绩："<< avg << endl;
 } 
 
 void Database::PrintStaffs(set<int> &s){
@@ -749,17 +758,21 @@ void Database::Execute(string com){
 			string oldName = filterName;
 			try{
 				if (com[poi] == '*'){
-					filterName = "";
+					filterName = "*";
 					viewFilter = 0;
 				}else{
 					string condition = com.substr(wi+5);
+					//cout << condition <<"!con"<<endl;
 					viewFilter = Build(condition);
 					filterName = condition; 
+					//cout << "buiok" << endl;
 				}
 			}catch(const char *s){
 				cout << s << endl;
 			}
+			//cout << "show"<<endl;
 			Show();
+			//cout << "oksh"<<endl;
 
 			
 			vector<Staff *> vs;
@@ -776,7 +789,13 @@ void Database::Execute(string com){
 					//srand(size_t(time(0)));
 					bu.SetStream(ss);
 					JumpSpace(com,poi);
-					ss << "#" << com.substr(poi,wi - poi);//使用SLang的语法糖 #展开
+					string temp = com.substr(poi,wi - poi);//使用SLang的语法糖 #展开
+					string sl;
+					for(auto &c:temp){
+						if (c != ' ')sl+=c;
+					}
+					ss << "#" << sl;
+					//cout << "Slang"<<sl<<endl;
 					SExp *e = bu.Build();//操作生成
 
 					for (auto &ps:vs){
@@ -852,7 +871,7 @@ void Database::Execute(string com){
 			try{
 				if (com[poi] == '*'){
 					delete viewFilter;
-					filterName.clear();
+					filterName = "*";
 					cout << "成功取消过滤器" << endl;
 				}else{
 					viewFilter = Build(com.substr(poi));
@@ -863,6 +882,71 @@ void Database::Execute(string com){
 				cout << s << endl;
 			}
 		}
+	}else if(IgnoreLU(ex,"report")){
+		if (poi >= com.size()){
+			cout << "请填写过滤条件，过滤器的使用方法在帮助文档里。" << endl;
+		}else{
+			Exp* repFilter;
+			string repName;
+			try{
+				if (com[poi] == '*'){
+					repName = "";
+					repFilter = 0;
+				}else{
+					repFilter = Build(com.substr(poi));
+					repName = com.substr(poi);
+				}
+				Report(repFilter,repName);
+			}catch(const char *s){
+				cout << s << endl;
+			}
+		}
+	}else if(IgnoreLU(ex,"delete") || ex == "d"){
+		if (poi >= com.size()){
+			cout << "请填写过滤条件，过滤器的使用方法在帮助文档里。" << endl;
+		}else{
+			Exp* oldFilter = viewFilter;
+			string oldName = filterName;
+			try{
+				if (com[poi] == '*'){
+					filterName = "*";
+					viewFilter = 0;
+				}else{
+					viewFilter = Build(com.substr(poi));
+					filterName = com.substr(poi);
+				}
+				
+				Show();
+
+
+			}catch(const char *s){
+				cout << s << endl;
+			}
+
+			vector<Staff *> vs;
+			GetStaffList(vs,viewFilter);
+
+			string choice;
+			while(true){
+				cout << "是否删除这些数据？yes:是，no:否" << endl;
+				cin >> choice;
+				if (IgnoreLU(choice,"yes") || choice == "是"){
+					for (auto &p : vs){
+						staffs.erase(p->GetID());
+						delete p;
+					}
+					Update();
+					changed = true;
+					break;
+				}else if (IgnoreLU(choice,"no") || choice == "否"){
+					break;
+				}
+			}
+
+			viewFilter = oldFilter;
+			filterName = oldName;
+
+		}
 	}else if (IgnoreLU(ex,"select")){
 		if (poi >= com.size()){
 			cout << "请填写过滤条件，过滤器的使用方法在帮助文档里。" << endl;
@@ -871,16 +955,16 @@ void Database::Execute(string com){
 			string oldName = filterName;
 			try{
 				if (com[poi] == '*'){
-					filterName = "";
+					filterName = "*";
 					viewFilter = 0;
 				}else{
 					viewFilter = Build(com.substr(poi));
 					filterName = com.substr(poi);
 				}
+				Show();
 			}catch(const char *s){
 				cout << s << endl;
 			}
-			Show();
 			filterName = oldName;
 			viewFilter = oldFilter;
 		}
@@ -907,7 +991,7 @@ void Database::Execute(string com){
 		}else{
 			try{
 				int id = GetInt(u);
-				u = NextStr(com,poi,' ');
+				u = NextStr(com,poi,'\n');
 				if (u.empty())throw "请输入新的名字";
 				string name = GetStr(u);
 				if (staffs.count(id)){
@@ -962,7 +1046,7 @@ void Database::Execute(string com){
 
 			cout << "insert salesmanager (id,name,age,state,events)" << endl;
 			cout << "如: insert salesmanager (39,'SmallBoss',21,2,17)" << endl;
-			cout << "不需要填写销售经理所管销售者,但销售经理的输入时间应先于所管销售者" << endl << endl;
+			cout << "不需要填写销售经理所管销售者" << endl << endl;
 
 		}else{
 			JumpSpace(com,poi);
