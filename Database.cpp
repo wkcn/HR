@@ -2,6 +2,7 @@
 #include "Form.h"
 
 Database::Database(){
+	//读取帮助文档
 	ifstream fin("help.txt");
 	string str;
 	while(!fin.eof()){
@@ -10,11 +11,22 @@ Database::Database(){
 	}
 	fin.close();
 
-	Load();//读取员工数据
-
+	//参数
 	cur_page = 1;
 	max_page = 0;
 	page_items = 10;
+	autosave = true;
+	changed = false;
+
+	//读取数据
+	try{
+		Load();//读取员工数据
+	}catch(const char * s){
+		cout << s << endl;
+	}
+
+
+	cout << "当前共" << staffs.size() << "条数据" << endl;
 }
 
 Database::~Database(){
@@ -41,6 +53,8 @@ Database::~Database(){
 }
 
 void Database::Save(){
+	if (!changed)return;
+	changed = false;
 	ofstream fout("staff.dat");
 	//Form Header
 	fout<<"id#name#kind#age#state#manager_id#sales#events\n";	//注意，比如名字输入时要检查，不能存在#
@@ -53,8 +67,9 @@ void Database::Save(){
 		fout << p->GetAge() << "#";
 		fout << p->GetState() << "#";
 
-		SalesMan *sa = dynamic_cast<SalesMan*>(p);
-		if(!sa){
+		//注意，SalesManager由于继承了SalesMan,其指针也可以转为SalesMan*
+		if(p->GetKind() == SALESMAN){
+			SalesMan *sa = dynamic_cast<SalesMan*>(p);
 			fout << sa->GetManagerID() << "#";
 		}else{
 			fout << "-1#";
@@ -76,6 +91,7 @@ void Database::Load(){
 		vector<string> data;
 		StrSplit(temp,data,'#');
 
+		if (data.size() != 8)break;//数据有误
 		int id = STOI(data[0]);
 		string name = data[1];
 		STAFF_KIND kind = STAFF_KIND(STOI(data[2]));
@@ -93,6 +109,7 @@ void Database::Load(){
 			case SALESMAN:
 				psalesman = new SalesMan(id,name,age,state);
 				psalesman -> SetManagerID(manager_id);
+				ChangeManagerID(id,manager_id);
 				psalesman -> SetSales(sales);
 				p = dynamic_cast<Staff*>(psalesman);
 				break;
@@ -114,6 +131,7 @@ void Database::Load(){
 		staffs[id] = p;
 	} 
 	fin.close();
+	Update();
 }
 
 void Database::Show(){
@@ -175,7 +193,12 @@ void Database::Show(){
 			form.write(i+1,7,ITOS(ac.events));
 		}else{
 			if (psalesman){
-				form.write(i+1,5,ITOS(psalesman-> GetManagerID()));
+				int manager_id = psalesman -> GetManagerID();
+				if (manager_id == -1){
+					form.write(i+1,5,"NULL");
+				}else{
+					form.write(i+1,5,ITOS(manager_id));
+				}
 				Achievement ac = psalesman -> GetAchievement();
 				form.write(i+1,6,ITOS(ac.sales));
 				form.write(i+1,7,"--");
@@ -189,6 +212,37 @@ void Database::Show(){
 	}	
 
 	form.print();
+	cout << "第" << cur_page << "/" << max_page << "页" << "\t";
+	cout << "( n:下一页 N:上一页 gg 39:跳转到39页 )" << endl;
+}
+
+void Database::ChangePage(size_t n){
+	//这里没必要警告了
+	if (n < 1){
+		n=1;
+	}
+	else if (n > max_page)n = max_page;
+	cur_page = n;
+}
+
+void Database::Update(){ 
+	//更新从属关系
+	for (auto &s : slaves){
+		int id = s.first;
+		if (staffs.count(id) == 0)continue;
+		Staff *pma = staffs[id];
+		SalesManager *ma = dynamic_cast<SalesManager*>(pma);
+		if(!pma)continue;
+		ma -> slaves.clear(); 
+		for (auto &slaveid : s.second){
+			if (staffs.count(slaveid) == 0)continue;
+			Staff *pps = staffs[slaveid];
+			SalesMan *ps = dynamic_cast<SalesMan*>(pps);
+			if(!ps)continue;
+			ma -> slaves.push_back(ps);
+		}
+	}
+	max_page = ceil(staffs.size() * 1.0 / page_items);
 }
 
 int Database::ISP(const string &op){
@@ -408,7 +462,12 @@ void Database::ReadInt(int &i){
 void Database::ReadInfo(vector<string> &sp,int &id,string &name,int &age,STAFF_STATE &state){
 
 	int st = 0;
-	name = GetStr(sp[1]);
+	try{
+		name = GetStr(sp[1]);
+	}catch (...){
+		throw;
+	}
+
 	id = -1;
 	age = -1;
 	st = -1;
@@ -468,6 +527,42 @@ void Database::Execute(string com){
 	size_t poi = 0;
 	string ex = NextStr(com,poi,' ');
 	if (IgnoreLU(ex,"show")){
+		string u = NextStr(com,poi,' ');
+		if (!u.empty()){
+			int n = STOI(u);
+			if (n < 6){
+				cout << "每页显示项目最少为6项" << endl;
+			}else{
+				//更新每页最大项目数
+				page_items = n;
+				cur_page = 1;
+				max_page = ceil(staffs.size() * 1.0 / page_items);
+			}
+		}
+		Show();
+	}if (ex == "n"){
+		int n = 1;
+		string u = NextStr(com,poi,' ');
+		if (!u.empty())n = STOI(u);
+		ChangePage(cur_page + n);
+		Show();
+	}else if (ex == "N"){
+		int n = 1;
+		string u = NextStr(com,poi,' ');
+		if (!u.empty())n = STOI(u);
+		ChangePage(cur_page - n);
+		Show();
+	}else if (ex == "gg"){
+		int n = 1;
+		string u = NextStr(com,poi,' ');
+		if (!u.empty())n = STOI(u);
+		ChangePage(n);
+		Show();
+	}else if (ex == "GG"){
+		int n = max_page;
+		string u = NextStr(com,poi,' ');
+		if (!u.empty())n = STOI(u);
+		ChangePage(n);
 		Show();
 	}else if (IgnoreLU(ex,"help")){
 		cout << helpText.str()<<endl;//输出帮助文档
@@ -515,12 +610,14 @@ void Database::Execute(string com){
 						staffs[id] = dynamic_cast<Staff*>(p);
 						ChangeManagerID(id,manager_id);
 						cout << "添加成功！" << endl;
+						changed = true;
+						Update();
 					}catch(const char *s){
 						cout << s <<endl;
 					}catch(...){
 						cout << "输入错误" << endl;
 					}
-				}else if (pro == "manager"){
+					}else if (pro == "manager"){
 					try{
 						if (sp.size() < 5)throw "输入参数过少";
 						//insert manager (id,name,age,state,events)
@@ -536,6 +633,8 @@ void Database::Execute(string com){
 						p -> SetEvents(events);
 						staffs[id] = dynamic_cast<Staff*>(p);
 						cout << "添加成功！" << endl;
+						changed = true;
+						Update();
 					}catch(const char *s){
 						cout << s <<endl;
 					}catch(...){
@@ -557,6 +656,8 @@ void Database::Execute(string com){
 						p -> SetEvents(events);
 						staffs[id] = dynamic_cast<Staff*>(p);
 						cout << "添加成功！" << endl;
+						changed = true;
+						Update();
 					}catch(const char *s){
 						cout << s <<endl;
 						cout << "请重新输入！" << endl;
@@ -592,5 +693,8 @@ void Database::Execute(string com){
 				cout << "成功添加别名" << target << " -> " << source << endl;
 			}
 		}
+	}
+	if (autosave){
+		Save();
 	}
 }

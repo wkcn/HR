@@ -18,6 +18,8 @@ class SalesManager : public SalesMan, public Manager{
 		
 		void AddSalesMan(int id);
 		void RemoveSalesMan(int id);
+	public:
+		vector<SalesMan*> slaves;//所管理的销售人员的指针
 };
 
 #endif

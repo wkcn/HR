@@ -11,6 +11,11 @@ void HR::Run(){
 	//简单起见，这里不用封装了
 	while (true){
 		getline(cin,com);//获取输入命令
+		if (IgnoreLU(com,"exit") || IgnoreLU(com,"quit")){
+			DB.Save();
+			cout << "Bye" << endl;
+			break;
+		}
 		//StrSplit(com,sp,' ');
 		DB.Execute(com);
 	}
