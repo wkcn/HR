@@ -1,7 +1,7 @@
 #include "SalesMan.h"
 
 SalesMan::SalesMan(int id,const string &name,int age,STAFF_STATE state):Staff(id,name,age,state){
-	
+    _manager_id = -1;
 }
 SalesMan::~SalesMan(){}
 

@@ -20,7 +20,7 @@ class Staff{
 		void ChangeID(int id);
 		void ChangeName(const string &name);
 		void ChangeAge(int age);
-		void ChangeState(STAFF_STATE state);\
+		void ChangeState(STAFF_STATE state);
 		
 		int GetID();
 		string GetName();

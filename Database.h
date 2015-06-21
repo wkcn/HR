@@ -96,6 +96,8 @@ private:
 	bool isTruth(Staff *st,Exp *filter);
 	void PrintStaffs(set<int> &);
 	void Report(Exp *repFilter,string repName);
+	void Check();
+	void Detail(int id);
 public:
 	Database();
 	~Database();
