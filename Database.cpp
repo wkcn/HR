@@ -10,6 +10,7 @@
 #include "./SLang/SLang.h"
 
 bool Comparer::operator()(Staff *a,Staff *b){
+	//比较器，先使用用户定义顺序，最后使用ID比较
 	for (size_t i = 0;i < vks.size();++i){
 		VALUE_KIND vk = vks[i];
 		bool z = zs[i];
@@ -23,7 +24,7 @@ bool Comparer::operator()(Staff *a,Staff *b){
 	}
 	return a->GetID() < b->GetID();
 }
-void Comparer::clear(){
+void Comparer::clear(){ 
 	vks.clear();
 	zs.clear();
 }
@@ -50,6 +51,7 @@ void Comparer::show(){
 	cout << endl;
 }
 int Comparer::GetValue(Staff *s,VALUE_KIND vk){
+	//获取该员工类型为<vk>的数据
 	switch (vk){
 		case ID:
 			return s->GetID();
@@ -66,8 +68,8 @@ int Comparer::GetValue(Staff *s,VALUE_KIND vk){
 		default:
 			//不计算manager id
 			return -1;
-	}
-}
+ 	}
+} 
 Database::Database(){
 	//读取帮助文档
 	ifstream fin("help.txt");
@@ -104,7 +106,7 @@ Database::~Database(){
 	for(auto &mp : staffs){
 		Staff *p = mp.second;
 		delete p;
-		continue;
+		continue;//下面代码不会执行
 		SalesManager *psalesManager = dynamic_cast<SalesManager*>(p);
 		if(psalesManager){
 			delete psalesManager;
@@ -123,6 +125,7 @@ Database::~Database(){
 }
 
 void Database::Save(){
+	//若未修改则不保存
 	if (!changed)return;
 	changed = false;
 	ofstream fout("staff.dat");
@@ -159,7 +162,7 @@ void Database::Load(){
 	while(!fin.eof()){
 		getline(fin,temp);
 		vector<string> data;
-		StrSplit(temp,data,'#');
+		StrSplit(temp,data,'#');//根据#号分割字符串
 
 		if (data.size() != 8)break;//数据有误
 		int id = STOI(data[0]);
@@ -205,6 +208,7 @@ void Database::Load(){
 }
 
 int Database::GetStaffValue(Staff *st,string varname){
+	//获取员工某个数据，低效率版本
 	if (varname == "id")return st->GetID();
 	if (varname == "age")return st->GetAge();
 	if (varname == "kind" || varname == "job")return int(st->GetKind());
@@ -268,6 +272,7 @@ void Database::GetStaffList(vector<Staff*> &vs,Exp *filter){
 		bool can = true;
 		if (filter){
 			if (!isTruth(mp.second,filter)){
+				//不满足筛选器条件
 				can = false;
 			}
 		}
@@ -280,11 +285,11 @@ void Database::Report(Exp *repFilter,string repName){
 	GetStaffList(vs,repFilter);
 
 	//显示业绩最高，最低的销售员，销售员们的平均业绩
-	set<int> ma_ids,mi_ids;
+	set<int> ma_ids,mi_ids;//业绩最高、最低销售员编号集合
 	int ma_achi,mi_achi;//最高业绩,最低业绩
 	BigInt sum = 0;
 
-	bool first = true;
+	bool first = true;//第一次读取
 	int num = 0;
 	for(auto p:vs){
 		if (p->GetKind() != SALESMAN)continue;
@@ -306,7 +311,7 @@ void Database::Report(Exp *repFilter,string repName){
 		sum += achi;
 		first = false;
 	}
-	if(num==0){
+	if(num == 0){
 		cout << "没有成员满足筛选条件" << endl;
 		return;
 	}
@@ -321,15 +326,24 @@ void Database::Report(Exp *repFilter,string repName){
 }
 
 void Database::Show(Exp * filter){
-	vector<Staff *> vs;
+
+	//若不传入过滤器，则使用全局的viewFilter
 	if (!filter)
 		filter = viewFilter;
+
+	//获取筛选结果
+	vector<Staff *> vs;
 	GetStaffList(vs,filter);
+
+	//排序
 	sort(vs.begin(),vs.end(),comparer);
+
+	//更正显示页数
 	max_page = ceil(vs.size() * 1.0 / page_items);
 	if (cur_page > max_page)cur_page = max_page;
 	if (cur_page < 1)cur_page = 1;
 
+	//填表，为了显示得更好
 	Form form;
 	//Header
 	form.write(0,0,"ID");
@@ -408,6 +422,7 @@ void Database::Show(Exp * filter){
 } 
 
 void Database::PrintStaffs(set<int> &s){
+	//根据编号打印员工的姓名及编号
 	if (s.size() == 0){
 		cout << "无";
 	}
@@ -422,6 +437,7 @@ void Database::PrintStaffs(set<int> &s){
 } 
 
 void Database::Check(){
+	//检查哪个销售人员不在管理范围内
 	set<int> vs;
 	for(auto &mp:staffs){
 		Staff *p = mp.second;
@@ -440,6 +456,7 @@ void Database::Check(){
 }
 
 void Database::Detail(int id){
+	//显示编号为id的员工的详细资料
 	if (staffs.count(id) == 0){
 		cout << "不存在编号为" << id <<"的成员" << endl;
 		return;
@@ -527,12 +544,14 @@ Exp* Database::Build(const string filter){
 	static const int symsSize = 18;
 	static string syms[symsSize] = {"(",")",">","<",">=","<=","==","=","!=","<>","+","-","*","/","+=","-=","*=","/="};
 	static string checkstr = "()><=!+-*/";
+	bool quote = false;
 
 	for(size_t i = 0;i < filter.size(); ++i){
 		if (filter[i] == ' '){
 			if(!(buf.empty()))vs.push_back(buf);
 			buf.clear();
 		}else if (filter[i] == '\'' || filter[i] == '\"'){
+			quote = true;
 			char q = filter[i];
 			if(!(buf.empty()))vs.push_back(buf);
 			buf.clear();
@@ -541,6 +560,7 @@ Exp* Database::Build(const string filter){
 			for(;i < filter.size(); ++i){
 				if (filter[i] == q){
 					buf += q;
+					quote = false;
 					break;
 				}else{
 					buf += filter[i];
@@ -571,6 +591,9 @@ Exp* Database::Build(const string filter){
 			buf += filter[i];
 		}
 	}
+
+	if(quote)throw "引号不匹配";
+
 	if(!buf.empty())vs.push_back(buf);
 
 	stack<string> op;
@@ -780,9 +803,10 @@ void Database::ReadInfo(vector<string> &sp,int &id,string &name,int &age,STAFF_S
 void Database::Execute(string com){
 	size_t tail = com.size()-1;
 	if (tail != 0 && isBlank(com[tail]))--tail;
-	com = com.substr(0,tail+1);
-	size_t poi = 0;
-	string ex = NextStr(com,poi,' ');
+	com = com.substr(0,tail+1);//删去末尾空格
+	size_t poi = 0;//读取字符串的指针
+	string ex = NextStr(com,poi,' ');//输入的指令操作名
+
 	if (IgnoreLU(ex,"sort")){
 		vector<string> vs;
 		StrSplit(com,vs,' ');
@@ -821,18 +845,14 @@ void Database::Execute(string com){
 					viewFilter = 0;
 				}else{
 					string condition = com.substr(wi+5);
-					//cout << condition <<"!con"<<endl;
 					viewFilter = Build(condition);
 					filterName = condition; 
-					//cout << "buiok" << endl;
 				}
 			}catch(const char *s){
 				cout << s << endl;
 			}
-			//cout << "show"<<endl;
-			Show();
-			//cout << "oksh"<<endl;
 
+			Show();
 			
 			vector<Staff *> vs;
 			GetStaffList(vs,viewFilter);
@@ -895,7 +915,6 @@ void Database::Execute(string com){
 						int sales = vm.GetVar("sales");
 						int events = vm.GetVar("events");
 
-						cout << kind <<"k"<<endl;
 						if (age < 200 && state <= 2 && kind <= 3 && kind>=1){
 							ps -> ChangeAge(age);
 							ps -> ChangeState(STAFF_STATE(state));

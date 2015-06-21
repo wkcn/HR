@@ -1,8 +1,10 @@
 #include "Staff.h"
 
 Staff::Staff(int id,const string &name,int age,STAFF_STATE state){
+	string na = name;
+	replace_all_distinct(na,"#","");//删除#号
 	this -> _id = id;
-	this -> _name = name;
+	this -> _name = na;
 	this -> _age = age;
 	this -> _state = state;
 }
@@ -12,7 +14,9 @@ void Staff::ChangeID(int id){
 	this -> _id = id;
 }
 void Staff::ChangeName(const string &name){
-	this -> _name = name;
+	string na = name;
+	replace_all_distinct(na,"#","");//删除#号
+	this -> _name = na;
 } 
 void Staff::ChangeAge(int age){
 	this -> _age = age;

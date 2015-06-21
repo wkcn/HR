@@ -22,19 +22,22 @@
  );
 */
 
-//类型
+//SQL表达式类型
 enum EXP_KIND{ 
 	EXP_OP,
 	EXP_VAR,
 	EXP_NUM,
 	EXP_STR
 };
+
 //数据类型
 enum VALUE_KIND{
 	ID,NAME,KIND,AGE,STATE,MANAGER_ID,SALES,EVENTS
 };
+
+//SQL表达式存储结构
+//为了方便设计，这里暂时不考虑效率问题
 struct Exp{
-	//为了方便设计，这里暂时不考虑效率问题
 	string name;
 	EXP_KIND kind;
 	//VALUE_KIND vk;用枚举可提高效率
@@ -49,6 +52,7 @@ struct Exp{
 	}
 };
 
+//比较器，排序用
 class Comparer{
 	public:
 		bool operator()(Staff *a,Staff *b);
@@ -59,7 +63,7 @@ class Comparer{
 		int GetValue(Staff *s,VALUE_KIND vk);
 		vector<VALUE_KIND> vks;//自定义的比较参数
 		vector<bool> zs;//0是正序，1是逆序
-};
+ };
 
 class Database{
 private:
@@ -73,36 +77,41 @@ private:
 	size_t max_page;//最大页数
 	size_t page_items;//每页项目数
 	bool autosave;
-	bool changed;
+	bool changed;//数据有修改
 	Exp* viewFilter;//显示项目的过滤器
 	string filterName;
 	Comparer comparer;//排序器
 private:
+	//解释器类
 	int ISP(const string &op);
 	int ICP(const string &op);
-	Exp *Build(const string filter);
+	Exp *Build(const string filter);//翻译筛选表达式
 	string NextStr(const string &s,size_t &poi,char c = ' ');
-	void JumpSpace(const string &s,size_t &poi);
-	void ShowPat();//显示输入格式
+	void JumpSpace(const string &s,size_t &poi);//跳过字符串中的空格
 	int GetInt(string s);
 	void ReadInt(int &i);
 	string GetStr(string s);
-	int GetStaffValue(Staff *st,string varname);
-	string GetSourceName(string s); //得到原名并转为小写
-	void ChangeManagerID(int id,int new_manager_id,int old_manager_id = -1);//更改所属管理者编号,-1代表之前不存在manager_id
-	void GetStaffList(vector<Staff*> &vs,Exp *filter);
+	bool isTruth(Staff *st,Exp *filter);//表达式真值判断
+private:
+	//查询类
+	int GetStaffValue(Staff *st,string varname);//获取员工的某个数据
+	void GetStaffList(vector<Staff*> &vs,Exp *filter);//筛选出员工列表
+	void PrintStaffs(set<int> &);//打印员工资料
+	void Report(Exp *repFilter,string repName);//业绩报表
+	void Check();//检查数据库正误性
+	void Detail(int id);//显示编号为id的员工的详细资料
 	void ReadInfo(vector<string> &sp,int &id,string &name,int &age,STAFF_STATE &state);//从用户输入读取员工信息
-	void ChangePage(size_t n);
-	bool isTruth(Staff *st,Exp *filter);
-	void PrintStaffs(set<int> &);
-	void Report(Exp *repFilter,string repName);
-	void Check();
-	void Detail(int id);
+private:
+	//其他
+	void ShowPat();//显示用户输入格式
+	string GetSourceName(string s); //得到原名并转为小写
+	void ChangePage(size_t n);//翻页
+	void ChangeManagerID(int id,int new_manager_id,int old_manager_id = -1);//更改所属管理者编号,-1代表之前不存在manager_id
 public:
 	Database();
 	~Database();
-	void Load();
-	void Save();
+	void Load();//读取数据
+	void Save();//保存数据
 	void Show(Exp * filter = 0);//筛选后打印出数据
 	void Update();//整体数据刷新
 	void Execute(string com);//执行SQL命令

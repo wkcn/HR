@@ -3,9 +3,14 @@
 
 指令 - 效果
 
-浏览类：
+查询类：
 show         打印出员工资料
 show <n>     设置一次最多显示多少行，再列出员工资料（<n>为数字）
+select       显示满足筛选条件的员工
+record       显示业绩报表
+detail <id>  显示编号为id的员工的详细资料
+sort         自定义排序
+check或log   检测数据库正误
 
 n            向下翻页
 N            向上翻页
@@ -17,14 +22,16 @@ g <n>        跳转到第n页
 gg           跳转到第一页
 GG           跳转到最后一页
 
-f            设置筛选条件
+filter       设置筛选条件(f)
 
 编辑类：
-i            插入新员工
-r            更改员工普通资料
-R            更改员工职位
-d            删除员工
+insert       插入新员工(i)
+rename       更改员工姓名
+update       更改员工数值资料
+delete       删除员工(d)
+alias        职位别名
 
-增强类：
-ReadMod <Model-Name>  读取训练模型
-TrainMod <Model-Name> 对员工数据进行训练
+退出：
+exit或quit
+
+更详细的帮助请查阅帮助文档.docx
